@@ -1,0 +1,29 @@
+package com.mhike.app.navigation
+
+sealed class Destinations(val route: String) {
+
+    // List & form/review
+    data object HikeList : Destinations("hike_list")
+    data object HikeForm : Destinations("hike_form")
+    data class HikeReview(val draftId: String) : Destinations("hike_review/{draftId}") {
+        companion object { fun route(draftId: String) = "hike_review/$draftId" }
+    }
+
+    // NEW: Hike Detail
+    data object HikeDetail : Destinations("hike_detail/{id}") {
+        fun route(id: Long) = "hike_detail/$id"
+    }
+
+    // Observations
+    data object ObservationList : Destinations("observation_list/{hikeId}/{hikeName}") {
+        fun route(hikeId: Long, hikeName: String) =
+            "observation_list/$hikeId/${hikeName.replace('/', ' ')}"
+    }
+    data object ObservationForm : Destinations("observation_form/{hikeId}?obsId={obsId}") {
+        fun routeAdd(hikeId: Long) = "observation_form/$hikeId"
+        fun routeEdit(hikeId: Long, obsId: Long) = "observation_form/$hikeId?obsId=$obsId"
+    }
+
+    // Search
+    data object Search : Destinations("search")
+}
