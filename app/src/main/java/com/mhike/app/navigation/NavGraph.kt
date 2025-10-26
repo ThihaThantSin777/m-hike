@@ -22,9 +22,10 @@ import com.mhike.app.ui.search.SearchScreen
 @Composable
 fun NavGraph() {
     val nav = rememberNavController()
+
     NavHost(navController = nav, startDestination = Destinations.HikeList.route) {
 
-        // List
+        // 🏕️ Hike List
         composable(Destinations.HikeList.route) {
             val vm: HikeListViewModel = hiltViewModel()
             HikeListScreen(
@@ -37,12 +38,13 @@ fun NavGraph() {
                 },
                 onOpenSearch = { nav.navigate(Destinations.Search.route) },
                 onOpenDetail = { hike ->
+                    // ✅ Pass the correct id placeholder ("hikeId")
                     nav.navigate(Destinations.HikeDetail.route(hike.id))
                 }
             )
         }
 
-        // Form
+        // ✏️ Hike Form
         composable(Destinations.HikeForm.route) {
             HikeFormScreen(
                 onReview = { draftId -> nav.navigate(Destinations.HikeReview.route(draftId)) },
@@ -50,12 +52,12 @@ fun NavGraph() {
             )
         }
 
-        // Review
+        // 🧾 Hike Review
         composable(
-            route = Destinations.HikeReview("{draftId}").route,
+            route = "hike_review/{draftId}",
             arguments = listOf(navArgument("draftId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val draftId = backStackEntry.arguments?.getString("draftId")!!
+        ) { backStack ->
+            val draftId = backStack.arguments?.getString("draftId")!!
             HikeReviewScreen(
                 draftId = draftId,
                 onConfirmSaved = { nav.popBackStack(Destinations.HikeList.route, false) },
@@ -63,27 +65,18 @@ fun NavGraph() {
             )
         }
 
-        // NEW: Detail
         composable(
-            route = Destinations.HikeDetail.route,
-            arguments = listOf(navArgument("id") { type = NavType.LongType })
-        ) { backStack ->
-            val id = backStack.arguments!!.getLong("id")
-            HikeDetailScreen(
-                hikeId = id,
-                onBack = { nav.popBackStack() },
-                onOpenObservations = { hid, name ->
-                    nav.navigate(Destinations.ObservationList.route(hid, name))
-                },
-                onAddObservation = { hid ->
-                    nav.navigate(Destinations.ObservationForm.routeAdd(hid))
-                }
+            route = "hike_detail/{hikeId}",
+            arguments = listOf(
+                navArgument("hikeId") { type = NavType.LongType }
             )
+        ) {
+            HikeDetailScreen(onBack = { nav.popBackStack() })
         }
 
-        // Observations list
+        // 📋 Observation List
         composable(
-            route = Destinations.ObservationList.route,
+            route = "observation_list/{hikeId}/{hikeName}",
             arguments = listOf(
                 navArgument("hikeId") { type = NavType.LongType },
                 navArgument("hikeName") { type = NavType.StringType }
@@ -95,17 +88,22 @@ fun NavGraph() {
                 hikeId = hikeId,
                 hikeName = hikeName,
                 onAdd = { nav.navigate(Destinations.ObservationForm.routeAdd(hikeId)) },
-                onEdit = { obsId -> nav.navigate(Destinations.ObservationForm.routeEdit(hikeId, obsId)) },
+                onEdit = { obsId ->
+                    nav.navigate(Destinations.ObservationForm.routeEdit(hikeId, obsId))
+                },
                 onBack = { nav.popBackStack() }
             )
         }
 
-        // Observation form
+        // 📝 Observation Form
         composable(
-            route = Destinations.ObservationForm.route,
+            route = "observation_form/{hikeId}?obsId={obsId}",
             arguments = listOf(
                 navArgument("hikeId") { type = NavType.LongType },
-                navArgument("obsId") { type = NavType.LongType; defaultValue = -1L }
+                navArgument("obsId") {
+                    type = NavType.LongType
+                    defaultValue = -1L
+                }
             )
         ) { backStack ->
             val hikeId = backStack.arguments!!.getLong("hikeId")
@@ -119,7 +117,7 @@ fun NavGraph() {
             )
         }
 
-        // Search
+        // 🔎 Search
         composable(Destinations.Search.route) {
             SearchScreen(
                 onBack = { nav.popBackStack() },

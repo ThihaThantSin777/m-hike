@@ -6,11 +6,13 @@ sealed class Destinations(val route: String) {
     data object HikeList : Destinations("hike_list")
     data object HikeForm : Destinations("hike_form")
     data class HikeReview(val draftId: String) : Destinations("hike_review/{draftId}") {
-        companion object { fun route(draftId: String) = "hike_review/$draftId" }
+        companion object {
+            fun route(draftId: String) = "hike_review/$draftId"
+        }
     }
 
     // NEW: Hike Detail
-    data object HikeDetail : Destinations("hike_detail/{id}") {
+    data object HikeDetail : Destinations("hike_detail/{hikeId}") {
         fun route(id: Long) = "hike_detail/$id"
     }
 
@@ -19,6 +21,7 @@ sealed class Destinations(val route: String) {
         fun route(hikeId: Long, hikeName: String) =
             "observation_list/$hikeId/${hikeName.replace('/', ' ')}"
     }
+
     data object ObservationForm : Destinations("observation_form/{hikeId}?obsId={obsId}") {
         fun routeAdd(hikeId: Long) = "observation_form/$hikeId"
         fun routeEdit(hikeId: Long, obsId: Long) = "observation_form/$hikeId?obsId=$obsId"
@@ -27,3 +30,4 @@ sealed class Destinations(val route: String) {
     // Search
     data object Search : Destinations("search")
 }
+

@@ -1,5 +1,8 @@
 package com.mhike.app.ui.hike.form
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.mhike.app.domain.model.Hike
 import com.mhike.app.util.ValidationResult
@@ -25,7 +28,7 @@ data class HikeDraft(
 @HiltViewModel
 class HikeFormViewModel @Inject constructor() : ViewModel() {
 
-    var draft = HikeDraft()
+    var draft by mutableStateOf(HikeDraft())
         private set
 
     fun update(transform: (HikeDraft) -> HikeDraft) {

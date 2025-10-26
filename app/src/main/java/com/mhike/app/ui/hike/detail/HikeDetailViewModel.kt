@@ -1,46 +1,39 @@
 package com.mhike.app.ui.hike.detail
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mhike.app.domain.model.Hike
-import com.mhike.app.domain.usecase.DeleteHike
 import com.mhike.app.domain.usecase.GetHikeById
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
-import kotlinx.datetime.LocalDate
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 @HiltViewModel
 class HikeDetailViewModel @Inject constructor(
     private val getHikeById: GetHikeById,
-    private val deleteHike: DeleteHike
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
+    private val _ui = MutableStateFlow<HikeDetailUiState>(HikeDetailUiState.Loading)
+    val ui: StateFlow<HikeDetailUiState> = _ui
 
-    lateinit var hike: StateFlow<Hike>
-
-    fun setHikeId(id: Long) {
-        if (!::hike.isInitialized) {
-            hike = getHikeById(id)
-                .filterNotNull()
-                .stateIn(
-                    scope = viewModelScope,
-                    started = SharingStarted.WhileSubscribed(5_000),
-                    initialValue = Hike(
-                        id = id,
-                        name = "",
-                        location = "",
-                        date = LocalDate(1970, 1, 1),
-                        parking = false,
-                        lengthKm = 0.0,
-                        difficulty = ""
-                    )
-                )
-        }
+    private val hikeId: Long = run {
+        val fromLong = savedStateHandle.get<Long>("hikeId")
+        requireNotNull(fromLong ?: -1) { "Missing nav argument: hikeId" }
     }
 
-    suspend fun delete(current: Hike) = deleteHike(current)
+    init {
+        viewModelScope.launch {
+            getHikeById(hikeId).collectLatest { hike ->
+                _ui.value = if (hike != null) {
+                    HikeDetailUiState.Ready(hike)
+                } else {
+                    HikeDetailUiState.NotFound
+                }
+            }
+        }
+    }
 }
