@@ -18,12 +18,13 @@ import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.mhike.app.navigation.Destinations
 import kotlinx.coroutines.delay
 
 @Composable
-fun SplashScreen(navController: NavController) {
+fun SplashScreen(navController: NavController, vm: SplashViewModel = hiltViewModel()) {
     var startAnimation by remember { mutableStateOf(false) }
 
     val scaleAnimation by animateFloatAsState(

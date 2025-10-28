@@ -41,11 +41,6 @@ fun HikeReviewScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.CheckCircle,
-                            contentDescription = null,
-                            modifier = Modifier.size(24.dp)
-                        )
                         Text(
                             text = "Review Hike",
                             fontWeight = FontWeight.SemiBold

@@ -40,11 +40,6 @@ fun HikeFormScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.AddCircle,
-                            contentDescription = null,
-                            modifier = Modifier.size(24.dp)
-                        )
                         Text(
                             text = "New Hike",
                             fontWeight = FontWeight.Bold

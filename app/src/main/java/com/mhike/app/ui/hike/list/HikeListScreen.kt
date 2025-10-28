@@ -564,31 +564,29 @@ fun HikeCard(
                                 style = MaterialTheme.typography.labelMedium
                             )
                         }
-
-
-                        OutlinedButton(
-                            onClick = onDeleteClick,
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error
-                            ),
-                            border = ButtonDefaults.outlinedButtonBorder.copy(
-                                brush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.error)
-                            )
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            Text(
-                                text = "Delete",
-                                fontWeight = FontWeight.SemiBold,
-                                style = MaterialTheme.typography.labelMedium
-                            )
-                        }
+                    }
+                    OutlinedButton(
+                        onClick = onDeleteClick,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        ),
+                        border = ButtonDefaults.outlinedButtonBorder.copy(
+                            brush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.error)
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = "Delete",
+                            fontWeight = FontWeight.SemiBold,
+                            style = MaterialTheme.typography.labelMedium
+                        )
                     }
                 }
             }

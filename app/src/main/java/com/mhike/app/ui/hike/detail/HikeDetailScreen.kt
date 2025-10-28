@@ -36,11 +36,6 @@ fun HikeDetailScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = null,
-                            modifier = Modifier.size(24.dp)
-                        )
                         Text(
                             text = "Hike Details",
                             fontWeight = FontWeight.Bold

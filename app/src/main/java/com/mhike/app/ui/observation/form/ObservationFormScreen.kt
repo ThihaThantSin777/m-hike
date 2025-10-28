@@ -44,11 +44,6 @@ fun ObservationFormScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(
-                            imageVector = if (isEdit) Icons.Default.Edit else Icons.Default.Add,
-                            contentDescription = null,
-                            modifier = Modifier.size(24.dp)
-                        )
                         Text(
                             text = if (isEdit) "Edit Observation" else "Add Observation",
                             fontWeight = FontWeight.SemiBold

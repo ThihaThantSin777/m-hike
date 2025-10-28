@@ -7,6 +7,11 @@ import kotlinx.datetime.LocalDate
 
 @Dao
 interface HikeDao {
+    @Query("SELECT COUNT(*) FROM hikes")
+    suspend fun count(): Int
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(items: List<HikeEntity>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(hike: HikeEntity): Long
@@ -27,7 +32,8 @@ interface HikeDao {
     fun observeById(id: Long): Flow<HikeEntity?>
 
     // Basic + advanced search. Any null parameter is ignored.
-    @Query("""
+    @Query(
+        """
         SELECT * FROM hikes
         WHERE (:name IS NULL OR name LIKE :name || '%')
           AND (:location IS NULL OR location LIKE '%' || :location || '%')
@@ -36,7 +42,8 @@ interface HikeDao {
           AND (:startDate IS NULL OR date >= :startDate)
           AND (:endDate IS NULL OR date <= :endDate)
         ORDER BY date DESC
-    """)
+    """
+    )
     fun search(
         name: String?,
         location: String?,
