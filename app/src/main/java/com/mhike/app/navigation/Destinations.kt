@@ -2,7 +2,7 @@ package com.mhike.app.navigation
 
 sealed class Destinations(val route: String) {
 
-    // List & form/review
+    data object Splash : Destinations("splash")
     data object HikeList : Destinations("hike_list")
     data object HikeForm : Destinations("hike_form")
     data class HikeReview(val draftId: String) : Destinations("hike_review/{draftId}") {
@@ -11,12 +11,10 @@ sealed class Destinations(val route: String) {
         }
     }
 
-    // NEW: Hike Detail
     data object HikeDetail : Destinations("hike_detail/{hikeId}") {
         fun route(id: Long) = "hike_detail/$id"
     }
 
-    // Observations
     data object ObservationList : Destinations("observation_list/{hikeId}/{hikeName}") {
         fun route(hikeId: Long, hikeName: String) =
             "observation_list/$hikeId/${hikeName.replace('/', ' ')}"
