@@ -11,9 +11,9 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.mhike.app.ui.hike.detail.HikeDetailScreen
 import com.mhike.app.ui.hike.form.HikeFormScreen
-import com.mhike.app.ui.hike.form.HikeReviewScreen
 import com.mhike.app.ui.hike.list.HikeListScreen
 import com.mhike.app.ui.hike.list.HikeListViewModel
+import com.mhike.app.ui.hike.review.HikeReviewScreen
 import com.mhike.app.ui.observation.form.ObservationFormScreen
 import com.mhike.app.ui.observation.list.ObservationListScreen
 import com.mhike.app.ui.search.SearchScreen
@@ -28,6 +28,7 @@ fun NavGraph() {
         composable(Destinations.Splash.route) {
             SplashScreen(navController = nav)
         }
+
 
         composable(Destinations.HikeList.route) {
             val vm: HikeListViewModel = hiltViewModel()
