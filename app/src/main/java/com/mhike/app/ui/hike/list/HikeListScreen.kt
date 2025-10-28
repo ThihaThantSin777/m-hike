@@ -1,25 +1,13 @@
 package com.mhike.app.ui.hike.list
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Divider
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -53,7 +41,10 @@ fun HikeListScreen(
                     IconButton(onClick = { menuOpen = true }) {
                         Icon(Icons.Default.MoreVert, contentDescription = "Menu")
                     }
-                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    DropdownMenu(
+                        expanded = menuOpen,
+                        onDismissRequest = { menuOpen = false }
+                    ) {
                         DropdownMenuItem(
                             text = { Text("Reset database") },
                             onClick = {
@@ -65,7 +56,11 @@ fun HikeListScreen(
                 }
             )
         },
-        floatingActionButton = { FloatingActionButton(onClick = onAddClick) { Text("+") } }
+        floatingActionButton = {
+            FloatingActionButton(onClick = onAddClick) {
+                Text("+")
+            }
+        }
     ) { pv ->
         if (hikes.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(pv)) {
@@ -76,12 +71,22 @@ fun HikeListScreen(
                 items(hikes) { h ->
                     ListItem(
                         headlineContent = { Text(h.name) },
-                        supportingContent = { Text("${h.location} • ${h.date}") },
+                        supportingContent = {
+                            Text("${h.location} • ${h.date}")
+                        },
                         trailingContent = {
-                            Text(
-                                text = "Delete",
-                                modifier = Modifier.clickable { onDelete(h) }
-                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(
+                                    text = "Obs",
+                                    modifier = Modifier.clickable { onOpenObservations(h) },
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = "Delete",
+                                    modifier = Modifier.clickable { onDelete(h) },
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
                         },
                         modifier = Modifier
                             .clickable { onOpenDetail(h) }
