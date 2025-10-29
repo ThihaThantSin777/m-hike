@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import com.mhike.app.domain.repo.MediaRepository
 
-
 @HiltViewModel
 class HikeDetailViewModel @Inject constructor(
     private val getHikeById: GetHikeById,
@@ -31,38 +30,60 @@ class HikeDetailViewModel @Inject constructor(
     private val _photos = MutableStateFlow<List<Media>>(emptyList())
     val photos: StateFlow<List<Media>> = _photos
 
-    private val hikeId: Long = run {
-        val fromLong = savedStateHandle.get<Long>("hikeId")
-        requireNotNull(fromLong ?: -1) { "Missing nav argument: hikeId" }
+    private val hikeId: Long = checkNotNull(savedStateHandle.get<Long>("hikeId")) {
+        "HikeDetailViewModel requires hikeId as a navigation argument"
     }
 
     init {
+        loadHikeDetails()
+        loadHikePhotos()
+    }
+
+    private fun loadHikeDetails() {
         viewModelScope.launch {
-            getHikeById(hikeId).collectLatest { hike ->
-                _ui.value = if (hike != null) {
-                    HikeDetailUiState.Ready(hike)
-                } else {
-                    HikeDetailUiState.NotFound
+            try {
+                getHikeById(hikeId).collectLatest { hike ->
+                    _ui.value = if (hike != null) {
+                        HikeDetailUiState.Ready(hike)
+                    } else {
+                        HikeDetailUiState.NotFound
+                    }
                 }
+            } catch (e: Exception) {
+                _ui.value = HikeDetailUiState.NotFound
             }
         }
+    }
 
+    private fun loadHikePhotos() {
         viewModelScope.launch {
-            getMediaForHike(hikeId).collectLatest { mediaList ->
-                _photos.value = mediaList
+            try {
+                getMediaForHike(hikeId).collectLatest { mediaList ->
+                    _photos.value = mediaList
+                }
+            } catch (e: Exception) {
+                _photos.value = emptyList()
             }
         }
     }
 
     fun attachPhoto(uri: String, mimeType: String?) {
         viewModelScope.launch {
-            attachPhotoToHike(hikeId, uri, mimeType)
+            try {
+                attachPhotoToHike(hikeId, uri, mimeType)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
     fun deletePhoto(photo: Media) {
         viewModelScope.launch {
-            mediaRepository.delete(photo)
+            try {
+                mediaRepository.delete(photo)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 }

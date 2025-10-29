@@ -6,9 +6,12 @@ import com.mhike.app.data.local.dao.ObservationDao
 import com.mhike.app.data.repo.HikeRepositoryImpl
 import com.mhike.app.data.repo.MediaRepositoryImpl
 import com.mhike.app.data.repo.ObservationRepositoryImpl
+import com.mhike.app.data.repo.WeatherRepositoryImpl
 import com.mhike.app.domain.repo.HikeRepository
 import com.mhike.app.domain.repo.MediaRepository
 import com.mhike.app.domain.repo.ObservationRepository
+import com.mhike.app.domain.repo.WeatherRepository
+import com.mhike.app.network.api.WeatherApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -29,7 +32,13 @@ object RepositoryModule {
     fun provideObservationRepository(dao: ObservationDao): ObservationRepository =
         ObservationRepositoryImpl(dao)
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     fun provideMediaRepository(dao: MediaDao): MediaRepository =
         MediaRepositoryImpl(dao)
+
+    @Provides
+    @Singleton
+    fun provideWeatherRepository(api: WeatherApi): WeatherRepository =
+        WeatherRepositoryImpl(api)
 }

@@ -1007,7 +1007,7 @@ fun HikeReviewDialog(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            text = if (isEditMode) "Update" else "Confirm & Save",
+                            text = if (isEditMode) "Update" else "Save",
                             fontWeight = FontWeight.Bold
                         )
                     }

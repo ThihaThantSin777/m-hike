@@ -1,6 +1,7 @@
 package com.mhike.app.ui.hike.detail
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -37,18 +38,37 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.mhike.app.domain.model.Media
+import com.mhike.app.domain.model.WeatherInfo
+import com.mhike.app.ui.weather.HikeWeatherViewModel
+import com.mhike.app.ui.weather.WeatherUiState
 import com.mhike.app.util.MediaStoreUtils
 import androidx.core.net.toUri
+
+
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
+
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.rotate
+
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.random.Random
 
 @RequiresApi(Build.VERSION_CODES.Q)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun HikeDetailScreen(
     onBack: () -> Unit,
-    vm: HikeDetailViewModel = hiltViewModel()
+    vm: HikeDetailViewModel = hiltViewModel(),
+    weatherVm: HikeWeatherViewModel = hiltViewModel()
 ) {
     val state by vm.ui.collectAsState()
     val photos by vm.photos.collectAsState()
+    val weatherState by weatherVm.state.collectAsState()
     val context = LocalContext.current
 
     var showPhotoDialog by remember { mutableStateOf(false) }
@@ -56,20 +76,16 @@ fun HikeDetailScreen(
     var showDeletePhotoDialog by remember { mutableStateOf(false) }
     var photoToDelete by remember { mutableStateOf<Media?>(null) }
 
-    // Camera permission
     val cameraPermission = rememberPermissionState(Manifest.permission.CAMERA)
 
-    // Photo picker permission (API 33+)
     val photoPermission = if (Build.VERSION.SDK_INT >= 33) {
         rememberPermissionState(Manifest.permission.READ_MEDIA_IMAGES)
     } else {
         rememberPermissionState(Manifest.permission.READ_EXTERNAL_STORAGE)
     }
 
-    // Camera URI state
     var capturedImageUri by remember { mutableStateOf<Uri?>(null) }
 
-    // Camera launcher
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
@@ -79,12 +95,18 @@ fun HikeDetailScreen(
         }
     }
 
-    // Gallery launcher
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
             vm.attachPhoto(it.toString(), context.contentResolver.getType(it))
+        }
+    }
+
+    LaunchedEffect(state) {
+        if (state is HikeDetailUiState.Ready) {
+            val hike = (state as HikeDetailUiState.Ready).hike
+            weatherVm.loadByCity(hike.location)
         }
     }
 
@@ -211,6 +233,7 @@ fun HikeDetailScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    // Header Card
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
@@ -269,6 +292,12 @@ fun HikeDetailScreen(
                         }
                     }
 
+                    // Weather Card
+                    AnimatedWeatherCard(weatherState = weatherState, onRefresh = {
+                        weatherVm.refresh();
+                    })
+
+                    // Photos Card
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
@@ -317,7 +346,6 @@ fun HikeDetailScreen(
                                         )
                                     }
                                 }
-
                             }
 
                             HorizontalDivider(thickness = 1.dp)
@@ -378,6 +406,7 @@ fun HikeDetailScreen(
                         }
                     }
 
+                    // Key Information Card
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
@@ -535,6 +564,7 @@ fun HikeDetailScreen(
                         }
                     }
 
+                    // Additional Details Card
                     if ((hike.description?.isNotBlank() == true) ||
                         (hike.terrain?.isNotBlank() == true) ||
                         (hike.expectedWeather?.isNotBlank() == true)
@@ -553,7 +583,6 @@ fun HikeDetailScreen(
                                     .padding(20.dp),
                                 verticalArrangement = Arrangement.spacedBy(20.dp)
                             ) {
-
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -573,7 +602,6 @@ fun HikeDetailScreen(
                                 HorizontalDivider(thickness = 1.dp)
 
                                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-
                                     if (hike.description?.isNotBlank() == true) {
                                         DetailTextBlock(
                                             icon = Icons.AutoMirrored.Filled.Notes,
@@ -611,6 +639,7 @@ fun HikeDetailScreen(
         }
     }
 
+    // Photo Dialog
     if (showPhotoDialog) {
         AlertDialog(
             onDismissRequest = { showPhotoDialog = false },
@@ -692,6 +721,7 @@ fun HikeDetailScreen(
         )
     }
 
+    // Full Photo Dialog
     if (selectedPhoto != null) {
         Dialog(
             onDismissRequest = { selectedPhoto = null }
@@ -806,6 +836,65 @@ fun HikeDetailScreen(
             },
             shape = RoundedCornerShape(16.dp)
         )
+    }
+}
+
+
+@Composable
+fun WeatherDetailCard(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    iconTint: Color = MaterialTheme.colorScheme.primary
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(28.dp),
+                tint = iconTint
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+fun getWeatherIcon(description: String): ImageVector {
+    return when {
+        description.contains("clear", ignoreCase = true) -> Icons.Default.WbSunny
+        description.contains("cloud", ignoreCase = true) -> Icons.Default.Cloud
+        description.contains("rain", ignoreCase = true) -> Icons.Default.Umbrella
+        description.contains("snow", ignoreCase = true) -> Icons.Default.AcUnit
+        description.contains("thunder", ignoreCase = true) -> Icons.Default.Bolt
+        description.contains("mist", ignoreCase = true) ||
+                description.contains("fog", ignoreCase = true) -> Icons.Default.Cloud
+
+        else -> Icons.Default.WbCloudy
     }
 }
 
@@ -942,3 +1031,611 @@ fun DetailTextBlock(
         }
     }
 }
+
+
+@Composable
+fun AnimatedWeatherCard(
+    weatherState: WeatherUiState,
+    onRefresh: () -> Unit = {}
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF64B5F6).copy(alpha = 0.1f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Cloud,
+                        contentDescription = null,
+                        tint = Color(0xFF1976D2),
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Text(
+                        text = "Current Weather",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                // Refresh button
+                IconButton(
+                    onClick = onRefresh,
+                    enabled = weatherState !is WeatherUiState.Loading
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Refresh weather",
+                        tint = if (weatherState is WeatherUiState.Loading)
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                        else
+                            Color(0xFF1976D2)
+                    )
+                }
+            }
+
+            HorizontalDivider(thickness = 1.dp)
+
+            when (weatherState) {
+                is WeatherUiState.Loading -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            CircularProgressIndicator(
+                                color = Color(0xFF1976D2),
+                                strokeWidth = 3.dp,
+                                modifier = Modifier.size(32.dp)
+                            )
+                            Text(
+                                text = "Loading weather...",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                is WeatherUiState.Success -> {
+                    AnimatedWeatherContent(weather = weatherState.data)
+                }
+
+                is WeatherUiState.Error -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ErrorOutline,
+                                contentDescription = null,
+                                modifier = Modifier.size(40.dp),
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                            Text(
+                                text = "Unable to load weather",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            Text(
+                                text = weatherState.message,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                }
+
+                is WeatherUiState.Idle -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Weather information will appear here",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@SuppressLint("DefaultLocale")
+@Composable
+fun AnimatedWeatherContent(weather: WeatherInfo) {
+    val description = (weather.description ?: weather.summary ?: "").lowercase()
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        // Animated weather background
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+        ) {
+            // Weather animation based on condition
+            when {
+                description.contains("rain") -> RainAnimation()
+                description.contains("snow") -> SnowAnimation()
+                description.contains("cloud") -> CloudAnimation()
+                description.contains("clear") || description.contains("sun") -> SunAnimation()
+                description.contains("thunder") || description.contains("storm") -> ThunderAnimation()
+                else -> CloudAnimation()
+            }
+
+            // Main temperature display overlay
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.Center)
+                    .padding(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.Top,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = String.format("%.1f", weather.tempC),
+                            style = MaterialTheme.typography.displayLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1565C0)
+                        )
+                        Text(
+                            text = "°C",
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = Color(0xFF1565C0),
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = getWeatherIcon(description),
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp),
+                            tint = Color(0xFF1976D2)
+                        )
+                        Text(
+                            text = (weather.description ?: weather.summary ?: "N/A")
+                                .replaceFirstChar { it.uppercase() },
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+
+                // Animated weather icon
+                Surface(
+                    shape = CircleShape,
+                    color = Color(0xFF64B5F6).copy(alpha = 0.3f),
+                    modifier = Modifier.size(100.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        AnimatedWeatherIcon(description = description)
+                    }
+                }
+            }
+        }
+
+        // Weather details grid
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Feels Like
+            weather.feelsLikeC?.let { feelsLike ->
+                WeatherDetailCard(
+                    icon = Icons.Default.Thermostat,
+                    label = "Feels Like",
+                    value = String.format("%.1f°C", feelsLike),
+                    modifier = Modifier.weight(1f),
+                    iconTint = Color(0xFFFF7043)
+                )
+            }
+
+            // Humidity
+            weather.humidityPercent?.let { humidity ->
+                WeatherDetailCard(
+                    icon = Icons.Default.WaterDrop,
+                    label = "Humidity",
+                    value = "$humidity%",
+                    modifier = Modifier.weight(1f),
+                    iconTint = Color(0xFF42A5F5)
+                )
+            }
+        }
+
+        // Second row of details
+        if (weather.windSpeedMs != null || weather.tempMinC != null || weather.tempMaxC != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Wind Speed
+                weather.windSpeedMs?.let { windSpeed ->
+                    WeatherDetailCard(
+                        icon = Icons.Default.Air,
+                        label = "Wind Speed",
+                        value = String.format("%.1f m/s", windSpeed),
+                        modifier = Modifier.weight(1f),
+                        iconTint = Color(0xFF66BB6A)
+                    )
+                }
+
+                // Temperature Range (Min/Max)
+                if (weather.tempMinC != null && weather.tempMaxC != null) {
+                    WeatherDetailCard(
+                        icon = Icons.Default.Thermostat,
+                        label = "Min / Max",
+                        value = String.format("%.0f° / %.0f°", weather.tempMinC, weather.tempMaxC),
+                        modifier = Modifier.weight(1f),
+                        iconTint = Color(0xFF9575CD)
+                    )
+                }
+            }
+        }
+
+        // Location info
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.LocationOn,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = buildString {
+                    append(weather.placeName)
+                    weather.countryCode?.let { append(", $it") }
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+fun AnimatedWeatherIcon(description: String) {
+    val infiniteTransition = rememberInfiniteTransition(label = "weather_icon")
+
+    when {
+        description.contains("clear") || description.contains("sun") -> {
+            val rotation by infiniteTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = 360f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(20000, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart
+                ),
+                label = "sun_rotation"
+            )
+
+            Canvas(modifier = Modifier.size(60.dp)) {
+                rotate(rotation) {
+                    // Draw sun rays
+                    for (i in 0 until 8) {
+                        val angle = (i * 45f) * (Math.PI / 180f).toFloat()
+                        val startX = center.x + cos(angle) * 25.dp.toPx()
+                        val startY = center.y + sin(angle) * 25.dp.toPx()
+                        val endX = center.x + cos(angle) * 35.dp.toPx()
+                        val endY = center.y + sin(angle) * 35.dp.toPx()
+
+                        drawLine(
+                            color = Color(0xFFFFA726),
+                            start = Offset(startX, startY),
+                            end = Offset(endX, endY),
+                            strokeWidth = 4.dp.toPx()
+                        )
+                    }
+                }
+                // Draw sun center
+                drawCircle(
+                    color = Color(0xFFFFA726),
+                    radius = 20.dp.toPx(),
+                    center = center
+                )
+            }
+        }
+
+        else -> {
+            Icon(
+                imageVector = getWeatherIcon(description),
+                contentDescription = null,
+                modifier = Modifier.size(60.dp),
+                tint = Color(0xFF1976D2)
+            )
+        }
+    }
+}
+
+@Composable
+fun RainAnimation() {
+    val rainDrops = remember {
+        List(30) {
+            RainDrop(
+                x = Random.nextFloat(),
+                speed = Random.nextFloat() * 0.5f + 0.5f,
+                length = Random.nextFloat() * 20f + 15f
+            )
+        }
+    }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "rain")
+    val animationProgress by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "rain_progress"
+    )
+
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        rainDrops.forEach { drop ->
+            val startY = -50f + (size.height + 50f) * ((animationProgress * drop.speed) % 1f)
+            val x = drop.x * size.width
+
+            drawLine(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF64B5F6).copy(alpha = 0.6f),
+                        Color(0xFF64B5F6).copy(alpha = 0.2f)
+                    )
+                ),
+                start = Offset(x, startY),
+                end = Offset(x, startY + drop.length),
+                strokeWidth = 2.dp.toPx()
+            )
+        }
+    }
+}
+
+@Composable
+fun SnowAnimation() {
+    val snowFlakes = remember {
+        List(25) {
+            SnowFlake(
+                x = Random.nextFloat(),
+                speed = Random.nextFloat() * 0.3f + 0.2f,
+                size = Random.nextFloat() * 6f + 3f,
+                swing = Random.nextFloat() * 0.02f + 0.01f
+            )
+        }
+    }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "snow")
+    val animationProgress by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "snow_progress"
+    )
+
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        snowFlakes.forEach { flake ->
+            val progress = (animationProgress * flake.speed) % 1f
+            val y = -20f + (size.height + 20f) * progress
+            val x = (flake.x + sin(progress * 10f) * flake.swing) * size.width
+
+            drawCircle(
+                color = Color.White.copy(alpha = 0.8f),
+                radius = flake.size.dp.toPx(),
+                center = Offset(x, y)
+            )
+        }
+    }
+}
+
+@Composable
+fun CloudAnimation() {
+    val clouds = remember {
+        listOf(
+            CloudData(y = 0.3f, speed = 0.3f, size = 80f),
+            CloudData(y = 0.5f, speed = 0.4f, size = 100f),
+            CloudData(y = 0.7f, speed = 0.25f, size = 70f)
+        )
+    }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "clouds")
+    val animationProgress by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(15000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "cloud_progress"
+    )
+
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        clouds.forEach { cloud ->
+            val progress = (animationProgress * cloud.speed) % 1f
+            val x = -cloud.size - 50f + (size.width + cloud.size + 100f) * progress
+            val y = size.height * cloud.y
+
+            // Draw cloud shape
+            drawCircle(
+                color = Color(0xFFB0BEC5).copy(alpha = 0.5f),
+                radius = cloud.size.dp.toPx() * 0.5f,
+                center = Offset(x, y)
+            )
+            drawCircle(
+                color = Color(0xFFB0BEC5).copy(alpha = 0.5f),
+                radius = cloud.size.dp.toPx() * 0.6f,
+                center = Offset(x + cloud.size.dp.toPx() * 0.4f, y - cloud.size.dp.toPx() * 0.2f)
+            )
+            drawCircle(
+                color = Color(0xFFB0BEC5).copy(alpha = 0.5f),
+                radius = cloud.size.dp.toPx() * 0.55f,
+                center = Offset(x + cloud.size.dp.toPx() * 0.8f, y)
+            )
+        }
+    }
+}
+
+@Composable
+fun SunAnimation() {
+    val infiniteTransition = rememberInfiniteTransition(label = "sun")
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "sun_scale"
+    )
+
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val centerX = size.width * 0.75f
+        val centerY = size.height * 0.3f
+
+        // Draw sun glow
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color(0xFFFFA726).copy(alpha = 0.3f),
+                    Color(0xFFFFA726).copy(alpha = 0f)
+                ),
+                center = Offset(centerX, centerY)
+            ),
+            radius = 60.dp.toPx() * scale,
+            center = Offset(centerX, centerY)
+        )
+
+        // Draw sun
+        drawCircle(
+            color = Color(0xFFFFA726).copy(alpha = 0.8f),
+            radius = 35.dp.toPx() * scale,
+            center = Offset(centerX, centerY)
+        )
+    }
+}
+
+@Composable
+fun ThunderAnimation() {
+    val infiniteTransition = rememberInfiniteTransition(label = "thunder")
+    val flashAlpha by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 0.5f,
+        animationSpec = infiniteRepeatable(
+            animation = keyframes {
+                durationMillis = 3000
+                0f at 0
+                0.6f at 100
+                0f at 200
+                0.8f at 300
+                0f at 400
+                0f at 3000
+            },
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "flash"
+    )
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Cloud background
+        CloudAnimation()
+
+        // Lightning flash
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            // Flash overlay
+            drawRect(
+                color = Color.White.copy(alpha = flashAlpha * 0.3f)
+            )
+
+            // Lightning bolt
+            if (flashAlpha > 0.3f) {
+                val path = Path().apply {
+                    val centerX = size.width * 0.6f
+                    moveTo(centerX, 0f)
+                    lineTo(centerX - 20.dp.toPx(), size.height * 0.3f)
+                    lineTo(centerX + 10.dp.toPx(), size.height * 0.3f)
+                    lineTo(centerX - 15.dp.toPx(), size.height * 0.7f)
+                    lineTo(centerX + 5.dp.toPx(), size.height * 0.45f)
+                    lineTo(centerX + 20.dp.toPx(), size.height * 0.45f)
+                    close()
+                }
+
+                drawPath(
+                    path = path,
+                    color = Color(0xFFFFEB3B).copy(alpha = flashAlpha)
+                )
+            }
+        }
+    }
+}
+
+// Data classes for animations
+data class RainDrop(
+    val x: Float,
+    val speed: Float,
+    val length: Float
+)
+
+data class SnowFlake(
+    val x: Float,
+    val speed: Float,
+    val size: Float,
+    val swing: Float
+)
+
+data class CloudData(
+    val y: Float,
+    val speed: Float,
+    val size: Float
+)
