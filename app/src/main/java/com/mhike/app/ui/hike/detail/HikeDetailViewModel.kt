@@ -3,7 +3,6 @@ package com.mhike.app.ui.hike.detail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mhike.app.domain.model.Hike
 import com.mhike.app.domain.model.Media
 import com.mhike.app.domain.usecase.AttachPhotoToHike
 import com.mhike.app.domain.usecase.GetHikeById

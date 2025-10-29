@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.mhike.app.domain.model.Observation
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
@@ -63,17 +64,6 @@ fun ObservationListScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = Color.White
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(
-                        onClick = onAdd
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Add observation",
                             tint = Color.White
                         )
                     }
@@ -257,7 +247,7 @@ fun ObservationListScreen(
 
 @Composable
 fun ObservationCard(
-    observation: com.mhike.app.domain.model.Observation,
+    observation: Observation,
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {

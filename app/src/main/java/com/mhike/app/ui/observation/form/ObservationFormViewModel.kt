@@ -10,14 +10,16 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Instant
 import javax.inject.Inject
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
-data class ObservationFormState(
+data class ObservationFormState @OptIn(ExperimentalTime::class) constructor(
     val text: String = "",
     val comment: String = "",
-    val photoUris: List<String> = emptyList()
+    val photoUris: List<String> = emptyList(),
+    val observationTime: Instant = Clock.System.now()
 )
 
 @HiltViewModel
@@ -35,7 +37,8 @@ class ObservationFormViewModel @Inject constructor(
             ui.value = ObservationFormState(
                 text = existing.text,
                 comment = existing.comment ?: "",
-                photoUris = existing.photoUris ?: emptyList()
+                photoUris = existing.photoUris ?: emptyList(),
+                observationTime = existing.at
             )
         }
     }
@@ -53,6 +56,10 @@ class ObservationFormViewModel @Inject constructor(
     }
 
     @OptIn(ExperimentalTime::class)
+    fun updateTime(newTime: Instant) {
+        ui.value = ui.value.copy(observationTime = newTime)
+    }
+
     fun save(hikeId: Long, obsId: Long?, onDone: () -> Unit) {
         viewModelScope.launch {
             val state = ui.value
@@ -65,7 +72,7 @@ class ObservationFormViewModel @Inject constructor(
                         text = state.text,
                         comment = state.comment.ifBlank { null },
                         photoUris = state.photoUris.ifEmpty { null },
-                        at = Clock.System.now()
+                        at = state.observationTime
                     )
                 )
             } else {
@@ -76,7 +83,7 @@ class ObservationFormViewModel @Inject constructor(
                         text = state.text,
                         comment = state.comment.ifBlank { null },
                         photoUris = state.photoUris.ifEmpty { null },
-                        at = Clock.System.now()
+                        at = state.observationTime
                     )
                 )
             }

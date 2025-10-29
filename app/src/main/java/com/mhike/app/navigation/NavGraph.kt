@@ -123,8 +123,8 @@ fun NavGraph() {
         composable(Destinations.Search.route) {
             SearchScreen(
                 onBack = { nav.popBackStack() },
-                onOpenObservations = { hike ->
-                    nav.navigate(Destinations.ObservationList.route(hike.id, hike.name))
+                onTapSearchResult = { hike ->
+                    nav.navigate(Destinations.HikeDetail.route(hike.id))
                 }
             )
         }

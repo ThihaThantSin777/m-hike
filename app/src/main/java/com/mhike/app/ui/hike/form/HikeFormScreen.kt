@@ -42,7 +42,6 @@ fun HikeFormScreen(
     var showDatePicker by remember { mutableStateOf(false) }
     var showReviewDialog by remember { mutableStateOf(false) }
 
-    // Load existing hike data if editing
     LaunchedEffect(hikeId) {
         if (hikeId != null) {
             vm.loadForEdit(hikeId)

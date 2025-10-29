@@ -1,6 +1,7 @@
 package com.mhike.app.ui.observation.form
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -32,16 +33,22 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.mhike.app.util.MediaStoreUtils
-import androidx.core.net.toUri
+import kotlinx.datetime.*
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.number
+import java.text.SimpleDateFormat
+import java.util.*
+import kotlin.time.ExperimentalTime
 
 @RequiresApi(Build.VERSION_CODES.Q)
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class, ExperimentalTime::class)
 @Composable
 fun ObservationFormScreen(
     hikeId: Long,
@@ -55,26 +62,24 @@ fun ObservationFormScreen(
     var showValidationError by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    // Photo states
     var showPhotoDialog by remember { mutableStateOf(false) }
     var selectedPhotoUri by remember { mutableStateOf<String?>(null) }
     var showDeletePhotoDialog by remember { mutableStateOf(false) }
     var photoToDelete by remember { mutableStateOf<String?>(null) }
 
-    // Camera permission
+
+    var showTimePicker by remember { mutableStateOf(false) }
+
     val cameraPermission = rememberPermissionState(Manifest.permission.CAMERA)
 
-    // Photo picker permission (API 33+)
     val photoPermission = if (Build.VERSION.SDK_INT >= 33) {
         rememberPermissionState(Manifest.permission.READ_MEDIA_IMAGES)
     } else {
         rememberPermissionState(Manifest.permission.READ_EXTERNAL_STORAGE)
     }
 
-    // Camera URI state
     var capturedImageUri by remember { mutableStateOf<Uri?>(null) }
 
-    // Camera launcher
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
@@ -84,7 +89,6 @@ fun ObservationFormScreen(
         }
     }
 
-    // Gallery launcher
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -204,6 +208,71 @@ fun ObservationFormScreen(
                     }
 
                     HorizontalDivider(thickness = 1.dp)
+
+                    // Time field
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = "Time of Observation *",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        OutlinedCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showTimePicker = true },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.outlinedCardColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            ),
+                            border = CardDefaults.outlinedCardBorder().copy(
+                                brush = androidx.compose.ui.graphics.SolidColor(Color(0xFF1565C0))
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Schedule,
+                                        contentDescription = null,
+                                        tint = Color(0xFF1565C0)
+                                    )
+                                    Column {
+                                        Text(
+                                            text = formatObservationTime(ui.observationTime),
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                        Text(
+                                            text = formatObservationDate(ui.observationTime),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Edit time",
+                                    tint = Color(0xFF1565C0),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                        Text(
+                            text = "Required field - Tap to change the observation time",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                        )
+                    }
 
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
@@ -345,7 +414,7 @@ fun ObservationFormScreen(
                                 }
                             }
                         }
-                        
+
                     }
 
                     HorizontalDivider(thickness = 1.dp)
@@ -528,6 +597,77 @@ fun ObservationFormScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
         }
+    }
+
+    // Time picker dialog
+    if (showTimePicker) {
+        val timePickerState = rememberTimePickerState(
+            initialHour = ui.observationTime.toLocalDateTime(TimeZone.currentSystemDefault()).hour,
+            initialMinute = ui.observationTime.toLocalDateTime(TimeZone.currentSystemDefault()).minute,
+            is24Hour = false
+        )
+
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Schedule,
+                    contentDescription = null,
+                    tint = Color(0xFF1565C0)
+                )
+            },
+            title = {
+                Text(
+                    text = "Set Observation Time",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    TimePicker(
+                        state = timePickerState,
+                        colors = TimePickerDefaults.colors(
+                            clockDialColor = MaterialTheme.colorScheme.surfaceVariant,
+                            selectorColor = Color(0xFF1565C0),
+                            timeSelectorSelectedContainerColor = Color(0xFF1565C0),
+                            timeSelectorSelectedContentColor = Color.White
+                        )
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val currentDateTime = ui.observationTime.toLocalDateTime(TimeZone.currentSystemDefault())
+                        val newDateTime = LocalDateTime(year = currentDateTime.year,
+                            month = currentDateTime.month.number,
+                            day = currentDateTime.day,
+                            hour = timePickerState.hour,
+                            minute = timePickerState.minute,
+                            second = 0,
+                            nanosecond = 0
+                        )
+                        val newInstant = newDateTime.toInstant(TimeZone.currentSystemDefault())
+                        vm.updateTime(newInstant)
+                        showTimePicker = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF1565C0)
+                    )
+                ) {
+                    Text("Confirm")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) {
+                    Text("Cancel")
+                }
+            },
+            shape = RoundedCornerShape(16.dp)
+        )
     }
 
     if (showPhotoDialog) {
@@ -773,4 +913,29 @@ fun ObservationPhotoThumbnail(
             }
         }
     }
+}
+
+@SuppressLint("DefaultLocale")
+@OptIn(ExperimentalTime::class)
+@Composable
+fun formatObservationTime(instant: Instant): String {
+    val dateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
+    val hour = dateTime.hour
+    val minute = dateTime.minute
+    val amPm = if (hour < 12) "AM" else "PM"
+    val displayHour = when {
+        hour == 0 -> 12
+        hour > 12 -> hour - 12
+        else -> hour
+    }
+    return String.format("%d:%02d %s", displayHour, minute, amPm)
+}
+
+@OptIn(ExperimentalTime::class)
+@Composable
+fun formatObservationDate(instant: Instant): String {
+    val dateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
+    val sdf = SimpleDateFormat("EEEE, MMMM d, yyyy", Locale.getDefault())
+    val date = Date(instant.toEpochMilliseconds())
+    return sdf.format(date)
 }

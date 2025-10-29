@@ -28,7 +28,7 @@ import com.mhike.app.domain.model.Hike
 @Composable
 fun SearchScreen(
     onBack: () -> Unit,
-    onOpenObservations: (Hike) -> Unit,
+    onTapSearchResult: (Hike) -> Unit,
     vm: SearchViewModel = hiltViewModel()
 ) {
     val form by vm.form.collectAsState()
@@ -387,7 +387,7 @@ fun SearchScreen(
                     items(results) { hike ->
                         HikeResultCard(
                             hike = hike,
-                            onClick = { onOpenObservations(hike) }
+                            onClick = { onTapSearchResult(hike) }
                         )
                     }
                 }
