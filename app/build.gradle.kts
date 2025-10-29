@@ -70,6 +70,9 @@ dependencies {
 
     // --- Coil (only if you added media/photos) ---
     implementation(libs.coil.compose)
+
+
+    implementation(libs.accompanist.permissions.v0250)
 }
 
 kapt { correctErrorTypes = true }

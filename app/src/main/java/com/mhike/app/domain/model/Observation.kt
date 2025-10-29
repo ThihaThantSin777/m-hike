@@ -8,5 +8,6 @@ data class Observation @OptIn(ExperimentalTime::class) constructor(
     val hikeId: Long,
     val text: String,
     val at: Instant,
-    val comment: String? = null
+    val comment: String? = null,
+    val photoUris: List<String>? = null
 )

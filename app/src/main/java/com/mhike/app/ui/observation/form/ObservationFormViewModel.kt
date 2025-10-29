@@ -16,7 +16,8 @@ import kotlin.time.ExperimentalTime
 
 data class ObservationFormState(
     val text: String = "",
-    val comment: String = ""
+    val comment: String = "",
+    val photoUris: List<String> = emptyList()
 )
 
 @HiltViewModel
@@ -33,9 +34,22 @@ class ObservationFormViewModel @Inject constructor(
             val existing = getObservationById(obsId).first() ?: return@launch
             ui.value = ObservationFormState(
                 text = existing.text,
-                comment = existing.comment ?: ""
+                comment = existing.comment ?: "",
+                photoUris = existing.photoUris ?: emptyList()
             )
         }
+    }
+
+    fun addPhoto(uri: String) {
+        ui.value = ui.value.copy(
+            photoUris = ui.value.photoUris + uri
+        )
+    }
+
+    fun removePhoto(uri: String) {
+        ui.value = ui.value.copy(
+            photoUris = ui.value.photoUris.filter { it != uri }
+        )
     }
 
     @OptIn(ExperimentalTime::class)
@@ -50,6 +64,7 @@ class ObservationFormViewModel @Inject constructor(
                         hikeId = hikeId,
                         text = state.text,
                         comment = state.comment.ifBlank { null },
+                        photoUris = state.photoUris.ifEmpty { null },
                         at = Clock.System.now()
                     )
                 )
@@ -60,6 +75,7 @@ class ObservationFormViewModel @Inject constructor(
                         hikeId = hikeId,
                         text = state.text,
                         comment = state.comment.ifBlank { null },
+                        photoUris = state.photoUris.ifEmpty { null },
                         at = Clock.System.now()
                     )
                 )

@@ -34,7 +34,8 @@ fun HikeListScreen(
 ) {
     val hikes by hikesFlow.collectAsState()
     var menuOpen by remember { mutableStateOf(false) }
-    var showConfirm by remember { mutableStateOf(false) }
+    var showResetConfirm by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
     var hikeToDelete by remember { mutableStateOf<Hike?>(null) }
 
     Scaffold(
@@ -91,7 +92,7 @@ fun HikeListScreen(
                             },
                             onClick = {
                                 menuOpen = false
-                                showConfirm = true
+                                showResetConfirm = true
                             }
                         )
                     }
@@ -213,7 +214,10 @@ fun HikeListScreen(
                         hike = hike,
                         onCardClick = { onOpenDetail(hike) },
                         onObservationsClick = { onOpenObservations(hike) },
-                        onDeleteClick = { hikeToDelete = hike }
+                        onDeleteClick = {
+                            hikeToDelete = hike
+                            showDeleteConfirm = true
+                        }
                     )
                 }
 
@@ -225,68 +229,35 @@ fun HikeListScreen(
         }
     }
 
-    if (showConfirm) {
+    // Reset database confirmation
+    if (showResetConfirm) {
         ConfirmDialog(
-            title = "Reset database?",
+            title = "Reset Database?",
             message = "This will delete all hikes and observations. This action cannot be undone.",
             confirmText = "Reset",
             onConfirm = {
-                showConfirm = false
+                showResetConfirm = false
                 onResetDatabase()
             },
-            onDismiss = { showConfirm = false }
+            onDismiss = { showResetConfirm = false }
         )
     }
 
-    if (hikeToDelete != null) {
-        AlertDialog(
-            onDismissRequest = { hikeToDelete = null },
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error
-                )
+    // Delete hike confirmation
+    if (showDeleteConfirm && hikeToDelete != null) {
+        ConfirmDialog(
+            title = "Delete Hike?",
+            message = "Are you sure you want to delete \"${hikeToDelete?.name}\"?\n\nThis will also delete all associated observations. This action cannot be undone.",
+            confirmText = "Delete",
+            onConfirm = {
+                hikeToDelete?.let { onDelete(it) }
+                hikeToDelete = null
+                showDeleteConfirm = false
             },
-            title = {
-                Text(
-                    text = "Delete Hike?",
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = "Are you sure you want to delete \"${hikeToDelete?.name}\"?",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = "This will also delete all associated observations. This action cannot be undone.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        hikeToDelete?.let { onDelete(it) }
-                        hikeToDelete = null
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Text("Delete")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { hikeToDelete = null }) {
-                    Text("Cancel")
-                }
-            },
-            shape = RoundedCornerShape(16.dp)
+            onDismiss = {
+                hikeToDelete = null
+                showDeleteConfirm = false
+            }
         )
     }
 }
