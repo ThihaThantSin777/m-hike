@@ -1,36 +1,44 @@
 package com.mhike.app.ui.hike.form
 
 import android.annotation.SuppressLint
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Notes
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.datetime.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HikeFormScreen(
-    onReview: (draftId: String) -> Unit,
+    onHikeSaved: () -> Unit,
     onBack: () -> Unit,
     vm: HikeFormViewModel = hiltViewModel()
 ) {
     var formError by remember { mutableStateOf<String?>(null) }
     var showDatePicker by remember { mutableStateOf(false) }
+    var showReviewDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -49,7 +57,7 @@ fun HikeFormScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            imageVector = Icons.Default.Close,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Cancel"
                         )
                     }
@@ -551,7 +559,7 @@ fun HikeFormScreen(
                             formError = vr.errorMessage ?: "Please fix the form."
                         } else {
                             formError = null
-                            onReview(vm.draft.id)
+                            showReviewDialog = true
                         }
                     },
                     modifier = Modifier.weight(1f),
@@ -578,11 +586,11 @@ fun HikeFormScreen(
                 }
             }
 
-
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
 
+    // Date Picker Dialog
     if (showDatePicker) {
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
@@ -592,6 +600,498 @@ fun HikeFormScreen(
             },
             initialDate = vm.draft.date?.toString() ?: ""
         )
+    }
+
+    // Review Dialog
+    if (showReviewDialog) {
+        HikeReviewDialog(
+            draft = vm.draft,
+            onDismiss = { showReviewDialog = false },
+            onEdit = { showReviewDialog = false },
+            onConfirm = {
+                vm.saveHike()
+                showReviewDialog = false
+                onHikeSaved()
+            }
+        )
+    }
+}
+
+@Composable
+fun HikeReviewDialog(
+    draft: HikeDraft,
+    onDismiss: () -> Unit,
+    onEdit: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    Dialog (
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = false
+        )
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.95f)
+                .fillMaxHeight(0.92f),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // Header
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = Color(0xFF1565C0),
+                    tonalElevation = 3.dp
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Visibility,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(32.dp)
+                            )
+                            Column {
+                                Text(
+                                    text = "Review Your Hike",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                                Text(
+                                    text = "Please verify all details",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.White.copy(alpha = 0.9f)
+                                )
+                            }
+                        }
+                        IconButton(onClick = onDismiss) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = Color.White
+                            )
+                        }
+                    }
+                }
+
+                // Scrollable content
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    // Hike Name - Prominent Display
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFF1565C0).copy(alpha = 0.1f)
+                        ),
+                        border = BorderStroke(2.dp, Color(0xFF1565C0).copy(alpha = 0.3f))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = Color(0xFF1565C0).copy(alpha = 0.2f),
+                                modifier = Modifier.size(56.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.Hiking,
+                                        contentDescription = null,
+                                        tint = Color(0xFF1565C0),
+                                        modifier = Modifier.size(32.dp)
+                                    )
+                                }
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Hike Name",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = draft.name,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF1565C0)
+                                )
+                            }
+                        }
+                    }
+
+                    // Main Details Card
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(20.dp)
+                        ) {
+                            Text(
+                                text = "Hike Details",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+
+                            // Location
+                            ReviewDialogItem(
+                                icon = Icons.Default.LocationOn,
+                                label = "Location",
+                                value = draft.location,
+                                iconTint = Color(0xFF26A69A)
+                            )
+
+                            // Date
+                            ReviewDialogItem(
+                                icon = Icons.Default.DateRange,
+                                label = "Date",
+                                value = draft.date?.toString() ?: "Not set",
+                                iconTint = Color(0xFF1565C0)
+                            )
+
+                            // Distance
+                            ReviewDialogItem(
+                                icon = Icons.Default.Straighten,
+                                label = "Distance",
+                                value = "${draft.lengthKm} km",
+                                iconTint = Color(0xFFFF9800)
+                            )
+
+                            // Difficulty with badge
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = Color(0xFF7E57C2).copy(alpha = 0.15f),
+                                        modifier = Modifier.size(40.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                imageVector = Icons.AutoMirrored.Filled.TrendingUp,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(20.dp),
+                                                tint = Color(0xFF7E57C2)
+                                            )
+                                        }
+                                    }
+                                    Text(
+                                        text = "Difficulty",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = when (draft.difficulty.lowercase()) {
+                                        "easy" -> Color(0xFF4CAF50).copy(alpha = 0.15f)
+                                        "moderate" -> Color(0xFFFF9800).copy(alpha = 0.15f)
+                                        "hard" -> Color(0xFFF44336).copy(alpha = 0.15f)
+                                        else -> MaterialTheme.colorScheme.surfaceVariant
+                                    }
+                                ) {
+                                    Text(
+                                        text = draft.difficulty,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = when (draft.difficulty.lowercase()) {
+                                            "easy" -> Color(0xFF2E7D32)
+                                            "moderate" -> Color(0xFFE65100)
+                                            "hard" -> Color(0xFFC62828)
+                                            else -> MaterialTheme.colorScheme.onSurface
+                                        },
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                    )
+                                }
+                            }
+
+                            // Parking
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = if (draft.parking == true)
+                                            Color(0xFF4CAF50).copy(alpha = 0.15f)
+                                        else
+                                            Color(0xFFF44336).copy(alpha = 0.15f),
+                                        modifier = Modifier.size(40.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                imageVector = if (draft.parking == true)
+                                                    Icons.Default.LocalParking
+                                                else
+                                                    Icons.Default.RemoveCircle,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(20.dp),
+                                                tint = if (draft.parking == true)
+                                                    Color(0xFF4CAF50)
+                                                else
+                                                    Color(0xFFF44336)
+                                            )
+                                        }
+                                    }
+                                    Text(
+                                        text = "Parking Available",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                                Text(
+                                    text = if (draft.parking == true) "Yes" else "No",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (draft.parking == true)
+                                        Color(0xFF4CAF50)
+                                    else
+                                        Color(0xFFF44336)
+                                )
+                            }
+                        }
+                    }
+
+                    // Additional Information (if any)
+                    if (draft.description.isNotBlank() || draft.terrain.isNotBlank() || draft.expectedWeather.isNotBlank()) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(20.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                Text(
+                                    text = "Additional Information",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+
+                                if (draft.description.isNotBlank()) {
+                                    ReviewDialogTextBlock(
+                                        icon = Icons.AutoMirrored.Filled.Notes,
+                                        label = "Description",
+                                        value = draft.description,
+                                        iconTint = Color(0xFF1565C0)
+                                    )
+                                }
+
+                                if (draft.terrain.isNotBlank()) {
+                                    ReviewDialogTextBlock(
+                                        icon = Icons.Default.Landscape,
+                                        label = "Terrain",
+                                        value = draft.terrain,
+                                        iconTint = Color(0xFF8D6E63)
+                                    )
+                                }
+
+                                if (draft.expectedWeather.isNotBlank()) {
+                                    ReviewDialogTextBlock(
+                                        icon = Icons.Default.WbSunny,
+                                        label = "Expected Weather",
+                                        value = draft.expectedWeather,
+                                        iconTint = Color(0xFFFFA726)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Action Buttons (Sticky at bottom)
+                HorizontalDivider(thickness = 1.dp)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onEdit,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = "Edit",
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+
+                    Button(
+                        onClick = onConfirm,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF1565C0)
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = "Confirm & Save",
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ReviewDialogItem(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    iconTint: Color = MaterialTheme.colorScheme.primary
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Surface(
+            shape = CircleShape,
+            color = iconTint.copy(alpha = 0.15f),
+            modifier = Modifier.size(40.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = iconTint
+                )
+            }
+        }
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+@Composable
+fun ReviewDialogTextBlock(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    iconTint: Color = MaterialTheme.colorScheme.primary
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = iconTint
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+        Surface(
+            shape = RoundedCornerShape(8.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(12.dp)
+            )
+        }
     }
 }
 
@@ -622,7 +1122,7 @@ fun DatePickerDialog(
         }
     )
 
-   DatePickerDialog(
+    DatePickerDialog(
         onDismissRequest = onDismissRequest,
         confirmButton = {
             TextButton(

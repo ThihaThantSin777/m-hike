@@ -13,7 +13,6 @@ import com.mhike.app.ui.hike.detail.HikeDetailScreen
 import com.mhike.app.ui.hike.form.HikeFormScreen
 import com.mhike.app.ui.hike.list.HikeListScreen
 import com.mhike.app.ui.hike.list.HikeListViewModel
-import com.mhike.app.ui.hike.review.HikeReviewScreen
 import com.mhike.app.ui.observation.form.ObservationFormScreen
 import com.mhike.app.ui.observation.list.ObservationListScreen
 import com.mhike.app.ui.search.SearchScreen
@@ -50,20 +49,10 @@ fun NavGraph() {
 
         composable(Destinations.HikeForm.route) {
             HikeFormScreen(
-                onReview = { draftId -> nav.navigate(Destinations.HikeReview.route(draftId)) },
+                onHikeSaved = {
+                    nav.popBackStack(Destinations.HikeList.route, false)
+                },
                 onBack = { nav.popBackStack() }
-            )
-        }
-
-        composable(
-            route = "hike_review/{draftId}",
-            arguments = listOf(navArgument("draftId") { type = NavType.StringType })
-        ) { backStack ->
-            val draftId = backStack.arguments?.getString("draftId")!!
-            HikeReviewScreen(
-                draftId = draftId,
-                onConfirmSaved = { nav.popBackStack(Destinations.HikeList.route, false) },
-                onEdit = { nav.popBackStack() }
             )
         }
 

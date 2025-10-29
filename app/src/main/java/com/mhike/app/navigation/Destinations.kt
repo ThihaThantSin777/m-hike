@@ -5,11 +5,6 @@ sealed class Destinations(val route: String) {
     data object Splash : Destinations("splash")
     data object HikeList : Destinations("hike_list")
     data object HikeForm : Destinations("hike_form")
-    data class HikeReview(val draftId: String) : Destinations("hike_review/{draftId}") {
-        companion object {
-            fun route(draftId: String) = "hike_review/$draftId"
-        }
-    }
 
     data object HikeDetail : Destinations("hike_detail/{hikeId}") {
         fun route(id: Long) = "hike_detail/$id"

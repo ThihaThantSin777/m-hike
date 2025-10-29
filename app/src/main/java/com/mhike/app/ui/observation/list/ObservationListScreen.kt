@@ -87,25 +87,28 @@ fun ObservationListScreen(
             )
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = onAdd,
-                containerColor = Color(0xFF1565C0),
-                contentColor = Color.White,
-                elevation = FloatingActionButtonDefaults.elevation(
-                    defaultElevation = 6.dp,
-                    pressedElevation = 12.dp
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = null
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = "Add Observation",
-                    fontWeight = FontWeight.SemiBold
-                )
+            if(observations.isNotEmpty()){
+                ExtendedFloatingActionButton(
+                    onClick = onAdd,
+                    containerColor = Color(0xFF1565C0),
+                    contentColor = Color.White,
+                    elevation = FloatingActionButtonDefaults.elevation(
+                        defaultElevation = 6.dp,
+                        pressedElevation = 12.dp
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "Add Observation",
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
+
         },
         containerColor = MaterialTheme.colorScheme.surface
     ) { pv ->
