@@ -7,9 +7,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mhike.app.domain.model.Hike
 import com.mhike.app.domain.usecase.CreateOrUpdateHike
+import com.mhike.app.domain.usecase.GetHikeById
 import com.mhike.app.util.ValidationResult
 import com.mhike.app.util.validateHike
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import java.util.UUID
@@ -17,7 +19,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HikeFormViewModel @Inject constructor(
-    private val createOrUpdateHike: CreateOrUpdateHike
+    private val createOrUpdateHike: CreateOrUpdateHike,
+    private val getHikeById: GetHikeById
 ) : ViewModel() {
 
     var draft by mutableStateOf(HikeDraft())
@@ -27,9 +30,27 @@ class HikeFormViewModel @Inject constructor(
         draft = transform(draft)
     }
 
+    fun loadForEdit(hikeId: Long) {
+        viewModelScope.launch {
+            val hike = getHikeById(hikeId).first() ?: return@launch
+            draft = HikeDraft(
+                id = hike.id.toString(),
+                name = hike.name,
+                location = hike.location,
+                date = hike.date,
+                parking = hike.parking,
+                lengthKm = hike.lengthKm.toString(),
+                difficulty = hike.difficulty,
+                description = hike.description ?: "",
+                terrain = hike.terrain ?: "",
+                expectedWeather = hike.expectedWeather ?: ""
+            )
+        }
+    }
+
     fun validate(): ValidationResult {
         val hike = Hike(
-            id = 0L,
+            id = draft.id.toLongOrNull() ?: 0L,
             name = draft.name.trim(),
             location = draft.location.trim(),
             date = draft.date,
@@ -46,6 +67,7 @@ class HikeFormViewModel @Inject constructor(
     fun saveHike() {
         viewModelScope.launch {
             val hike = Hike(
+                id = draft.id.toLongOrNull() ?: 0L,
                 name = draft.name.trim(),
                 location = draft.location.trim(),
                 date = draft.date ?: LocalDate(1970, 1, 1),
@@ -62,7 +84,7 @@ class HikeFormViewModel @Inject constructor(
 }
 
 data class HikeDraft(
-    val id: String = UUID.randomUUID().toString(),
+    val id: String = "0",
     val name: String = "",
     val location: String = "",
     val date: LocalDate? = null,

@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.StateFlow
 fun HikeListScreen(
     hikesFlow: StateFlow<List<Hike>>,
     onAddClick: () -> Unit,
+    onEditClick: (Hike) -> Unit,
     onDelete: (Hike) -> Unit,
     onResetDatabase: () -> Unit,
     onOpenObservations: (Hike) -> Unit,
@@ -214,6 +215,7 @@ fun HikeListScreen(
                         hike = hike,
                         onCardClick = { onOpenDetail(hike) },
                         onObservationsClick = { onOpenObservations(hike) },
+                        onEditClick = { onEditClick(hike) },
                         onDeleteClick = {
                             hikeToDelete = hike
                             showDeleteConfirm = true
@@ -267,6 +269,7 @@ fun HikeCard(
     hike: Hike,
     onCardClick: () -> Unit,
     onObservationsClick: () -> Unit,
+    onEditClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -536,29 +539,61 @@ fun HikeCard(
                             )
                         }
                     }
-                    OutlinedButton(
-                        onClick = onDeleteClick,
+
+
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
-                        ),
-                        border = ButtonDefaults.outlinedButtonBorder.copy(
-                            brush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.error)
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            text = "Delete",
-                            fontWeight = FontWeight.SemiBold,
-                            style = MaterialTheme.typography.labelMedium
-                        )
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ){
+                        OutlinedButton(
+                            onClick = onEditClick,
+                            modifier =  Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = Color(0xFFFF9800)
+                            ),
+                            border = ButtonDefaults.outlinedButtonBorder.copy(
+                                brush = androidx.compose.ui.graphics.SolidColor(Color(0xFFFF9800))
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = "Edit",
+                                fontWeight = FontWeight.SemiBold,
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        }
+
+                        OutlinedButton(
+                            onClick = onDeleteClick,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            ),
+                            border = ButtonDefaults.outlinedButtonBorder.copy(
+                                brush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.error)
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = "Delete",
+                                fontWeight = FontWeight.SemiBold,
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        }
                     }
+
                 }
             }
         }

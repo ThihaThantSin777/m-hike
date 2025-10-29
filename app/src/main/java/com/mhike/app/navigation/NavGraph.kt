@@ -33,7 +33,10 @@ fun NavGraph() {
             val vm: HikeListViewModel = hiltViewModel()
             HikeListScreen(
                 hikesFlow = vm.hikes,
-                onAddClick = { nav.navigate(Destinations.HikeForm.route) },
+                onAddClick = { nav.navigate(Destinations.HikeForm.routeNew()) },
+                onEditClick = { hike ->
+                    nav.navigate(Destinations.HikeForm.routeEdit(hike.id))
+                },
                 onDelete = vm::onDelete,
                 onResetDatabase = vm::onResetDatabase,
                 onOpenObservations = { hike ->
@@ -47,8 +50,19 @@ fun NavGraph() {
         }
 
 
-        composable(Destinations.HikeForm.route) {
+        composable(
+            route = "hike_form?hikeId={hikeId}",
+            arguments = listOf(
+                navArgument("hikeId") {
+                    type = NavType.LongType
+                    defaultValue = -1L
+                }
+            )
+        ) { backStack ->
+            val hikeIdArg = backStack.arguments?.getLong("hikeId") ?: -1L
+            val hikeId: Long? = if (hikeIdArg == -1L) null else hikeIdArg
             HikeFormScreen(
+                hikeId = hikeId,
                 onHikeSaved = {
                     nav.popBackStack(Destinations.HikeList.route, false)
                 },

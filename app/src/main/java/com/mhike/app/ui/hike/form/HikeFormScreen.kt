@@ -32,13 +32,22 @@ import kotlinx.datetime.LocalDate
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HikeFormScreen(
+    hikeId: Long? = null,
     onHikeSaved: () -> Unit,
     onBack: () -> Unit,
     vm: HikeFormViewModel = hiltViewModel()
 ) {
+    val isEditMode = hikeId != null
     var formError by remember { mutableStateOf<String?>(null) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showReviewDialog by remember { mutableStateOf(false) }
+
+    // Load existing hike data if editing
+    LaunchedEffect(hikeId) {
+        if (hikeId != null) {
+            vm.loadForEdit(hikeId)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -49,7 +58,7 @@ fun HikeFormScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = "New Hike",
+                            text = if (isEditMode) "Edit Hike" else "New Hike",
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -94,13 +103,13 @@ fun HikeFormScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Info,
+                        imageVector = if (isEditMode) Icons.Default.Edit else Icons.Default.Info,
                         contentDescription = null,
                         tint = Color(0xFF1565C0)
                     )
                     Column {
                         Text(
-                            text = "Create New Hike",
+                            text = if (isEditMode) "Update Hike Details" else "Create New Hike",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -606,6 +615,7 @@ fun HikeFormScreen(
     if (showReviewDialog) {
         HikeReviewDialog(
             draft = vm.draft,
+            isEditMode = isEditMode,
             onDismiss = { showReviewDialog = false },
             onEdit = { showReviewDialog = false },
             onConfirm = {
@@ -620,6 +630,7 @@ fun HikeFormScreen(
 @Composable
 fun HikeReviewDialog(
     draft: HikeDraft,
+    isEditMode: Boolean,
     onDismiss: () -> Unit,
     onEdit: () -> Unit,
     onConfirm: () -> Unit
@@ -670,7 +681,7 @@ fun HikeReviewDialog(
                             )
                             Column {
                                 Text(
-                                    text = "Review Your Hike",
+                                    text = if (isEditMode) "Review Your Changes" else "Review Your Hike",
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White
@@ -997,7 +1008,7 @@ fun HikeReviewDialog(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            text = "Confirm & Save",
+                            text = if (isEditMode) "Update" else "Confirm & Save",
                             fontWeight = FontWeight.Bold
                         )
                     }
