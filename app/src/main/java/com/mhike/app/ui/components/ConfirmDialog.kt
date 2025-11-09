@@ -14,6 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
+
 @Composable
 fun ConfirmDialog(
     title: String,
@@ -26,47 +27,59 @@ fun ConfirmDialog(
     iconTint: Color? = null,
     isDestructive: Boolean = false
 ) {
+    val cs = MaterialTheme.colorScheme
+    val dialogShape = RoundedCornerShape(20.dp)
+
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = if (icon != null) {
             {
+                // Slightly smaller icon with themed tint (error for destructive, primary otherwise)
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    modifier = Modifier.size(48.dp),
-                    tint = iconTint ?: when {
-                        isDestructive -> MaterialTheme.colorScheme.error
-                        else -> Color(0xFFFF9800)
-                    }
+                    modifier = Modifier.size(40.dp),
+                    tint = iconTint ?: if (isDestructive) cs.error else cs.primary
                 )
             }
         } else null,
         title = {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                color = cs.onSurface
             )
         },
         text = {
-            Text(
-                text = message,
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            // Centered message with comfortable line length and subtle color
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = message,
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = cs.onSurfaceVariant
+                )
+            }
         },
         confirmButton = {
+            // Use primary for normal actions, error container for destructive
+            val btnColors = if (isDestructive) {
+                ButtonDefaults.buttonColors(
+                    containerColor = cs.error,
+                    contentColor = cs.onError
+                )
+            } else {
+                ButtonDefaults.buttonColors(
+                    containerColor = cs.primary,
+                    contentColor = cs.onPrimary
+                )
+            }
+
             Button(
                 onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isDestructive)
-                        MaterialTheme.colorScheme.error
-                    else
-                        Color(0xFF1565C0)
-                ),
-                shape = RoundedCornerShape(8.dp)
+                colors = btnColors,
+                shape = RoundedCornerShape(10.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
             ) {
                 if (isDestructive) {
                     Icon(
@@ -78,26 +91,30 @@ fun ConfirmDialog(
                 }
                 Text(
                     text = confirmText,
-                    fontWeight = FontWeight.SemiBold
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
                 )
             }
         },
         dismissButton = {
+            // Outlined to reduce visual weight; picks up outline color from theme
             OutlinedButton(
                 onClick = onDismiss,
-                shape = RoundedCornerShape(8.dp),
+                shape = RoundedCornerShape(10.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.onSurface
-                )
+                    contentColor = cs.onSurface
+                ),
+                border = ButtonDefaults.outlinedButtonBorder(true)
             ) {
                 Text(
                     text = dismissText,
-                    fontWeight = FontWeight.Medium
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
                 )
             }
         },
-        shape = RoundedCornerShape(20.dp),
-        containerColor = MaterialTheme.colorScheme.surface,
+        shape = dialogShape,
+        containerColor = cs.surface,
         tonalElevation = 6.dp
     )
 }
+

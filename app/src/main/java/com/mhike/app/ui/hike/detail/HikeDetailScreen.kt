@@ -7,6 +7,9 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -24,14 +27,22 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -42,18 +53,6 @@ import com.mhike.app.domain.model.WeatherInfo
 import com.mhike.app.ui.weather.HikeWeatherViewModel
 import com.mhike.app.ui.weather.WeatherUiState
 import com.mhike.app.util.MediaStoreUtils
-import androidx.core.net.toUri
-
-
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.Canvas
-
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.rotate
-
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
@@ -71,13 +70,18 @@ fun HikeDetailScreen(
     val weatherState by weatherVm.state.collectAsState()
     val context = LocalContext.current
 
+    
+    val darkBg = Color(0xFF0A1929)
+    val darkSurface = Color(0xFF1A2F42)
+    val accentBlue = Color(0xFF29B6F6)
+    val lightBlue = Color(0xFF81D4FA)
+
     var showPhotoDialog by remember { mutableStateOf(false) }
     var selectedPhoto by remember { mutableStateOf<Media?>(null) }
     var showDeletePhotoDialog by remember { mutableStateOf(false) }
     var photoToDelete by remember { mutableStateOf<Media?>(null) }
 
     val cameraPermission = rememberPermissionState(Manifest.permission.CAMERA)
-
     val photoPermission = if (Build.VERSION.SDK_INT >= 33) {
         rememberPermissionState(Manifest.permission.READ_MEDIA_IMAGES)
     } else {
@@ -98,9 +102,7 @@ fun HikeDetailScreen(
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let {
-            vm.attachPhoto(it.toString(), context.contentResolver.getType(it))
-        }
+        uri?.let { vm.attachPhoto(it.toString(), context.contentResolver.getType(it)) }
     }
 
     LaunchedEffect(state) {
@@ -110,796 +112,530 @@ fun HikeDetailScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = "Hike Details",
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF1565C0),
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        darkBg,
+                        Color(0xFF1A2F42),
+                        Color(0xFF2A4A5E)
+                    )
                 )
             )
-        },
-        containerColor = MaterialTheme.colorScheme.surface
-    ) { pv ->
-        when (val s = state) {
-            is HikeDetailUiState.Loading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(pv),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        CircularProgressIndicator(
-                            color = Color(0xFF1565C0),
-                            strokeWidth = 4.dp,
-                            modifier = Modifier.size(48.dp)
-                        )
-                        Text(
-                            text = "Loading hike details...",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
+    ) {
+        
+        DetailBackgroundStars()
 
-            is HikeDetailUiState.NotFound -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(pv)
-                        .padding(32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(24.dp)
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.errorContainer,
-                            modifier = Modifier.size(100.dp)
+        Scaffold(
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.ErrorOutline,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(50.dp),
-                                    tint = MaterialTheme.colorScheme.error
-                                )
-                            }
-                        }
-                        Text(
-                            text = "Hike Not Found",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = "The hike you're looking for doesn't exist or has been deleted.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
-                        Button(
-                            onClick = onBack,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF1565C0)
+                            Text(
+                                "Hike Details",
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 22.sp,
+                                letterSpacing = 0.5.sp,
+                                color = Color.White
                             )
+                            Box(
+                                modifier = Modifier
+                                    .width(60.dp)
+                                    .height(2.dp)
+                                    .background(
+                                        brush = Brush.horizontalGradient(
+                                            colors = listOf(
+                                                Color(0xFF4FC3F7),
+                                                Color(0xFF29B6F6),
+                                                Color(0xFF03A9F4)
+                                            )
+                                        )
+                                    )
+                            )
+                        }
+                    },
+                    navigationIcon = {
+                        IconButton(
+                            onClick = onBack,
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .background(accentBlue.copy(alpha = 0.15f))
                         ) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = null
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = lightBlue
                             )
-                            Spacer(Modifier.width(8.dp))
-                            Text("Go Back")
+                        }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = Color.Transparent,
+                        titleContentColor = Color.White,
+                        navigationIconContentColor = Color.White
+                    )
+                )
+            },
+            containerColor = Color.Transparent
+        ) { pv ->
+            when (val s = state) {
+                is HikeDetailUiState.Loading -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(pv),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier.size(80.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(80.dp)
+                                        .blur(20.dp)
+                                        .clip(CircleShape)
+                                        .background(accentBlue.copy(alpha = 0.3f))
+                                )
+                                CircularProgressIndicator(
+                                    color = lightBlue,
+                                    strokeWidth = 4.dp,
+                                    modifier = Modifier.size(48.dp)
+                                )
+                            }
+                            Text(
+                                text = "Loading hike details...",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = Color.White,
+                                fontWeight = FontWeight.Medium
+                            )
                         }
                     }
                 }
-            }
 
-            is HikeDetailUiState.Ready -> {
-                val hike = s.hike
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(pv)
-                        .verticalScroll(rememberScrollState())
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // Header Card
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = Color(0xFF1565C0).copy(alpha = 0.1f)
-                        )
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(20.dp),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Surface(
-                                shape = CircleShape,
-                                color = Color(0xFF1565C0),
-                                modifier = Modifier.size(60.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        imageVector = Icons.Default.Terrain,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(32.dp),
-                                        tint = Color.White
-                                    )
-                                }
-                            }
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Text(
-                                    text = hike.name,
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF1565C0)
-                                )
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.LocationOn,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp),
-                                        tint = Color(0xFF26A69A)
-                                    )
-                                    Text(
-                                        text = hike.location,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // Weather Card
-                    AnimatedWeatherCard(weatherState = weatherState, onRefresh = {
-                        weatherVm.refresh();
-                    })
-
-                    // Photos Card
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        )
+                is HikeDetailUiState.NotFound -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(pv)
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
                     ) {
                         Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.PhotoLibrary,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                    Text(
-                                        text = "Photos",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Surface(
-                                        shape = CircleShape,
-                                        color = MaterialTheme.colorScheme.primaryContainer
-                                    ) {
-                                        Text(
-                                            text = photos.size.toString(),
-                                            modifier = Modifier.padding(
-                                                horizontal = 8.dp,
-                                                vertical = 4.dp
-                                            ),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
-                            }
-
-                            HorizontalDivider(thickness = 1.dp)
-
-                            if (photos.isEmpty()) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(32.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.PhotoCamera,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(48.dp),
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                                                alpha = 0.5f
-                                            )
-                                        )
-                                        Text(
-                                            text = "No photos yet",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                        TextButton(
-                                            onClick = { showPhotoDialog = true }
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Add,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                            Spacer(Modifier.width(4.dp))
-                                            Text("Add photos")
-                                        }
-                                    }
-                                }
-                            } else {
-                                LazyRow(
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    items(photos) { photo ->
-                                        PhotoThumbnail(
-                                            photo = photo,
-                                            onClick = { selectedPhoto = photo },
-                                            onLongClick = {
-                                                photoToDelete = photo
-                                                showDeletePhotoDialog = true
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Key Information Card
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        )
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(20.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(20.dp)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            Box(
+                                modifier = Modifier.size(120.dp),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Analytics,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
+                                Box(
+                                    modifier = Modifier
+                                        .size(120.dp)
+                                        .blur(30.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFFEF5350).copy(alpha = 0.3f))
                                 )
-                                Text(
-                                    text = "Key Information",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-
-                            HorizontalDivider(thickness = 1.dp)
-
-                            hike.date?.let { date ->
-                                DetailItem(
-                                    icon = Icons.Default.DateRange,
-                                    label = "Date",
-                                    value = date.toString(),
-                                    iconTint = Color(0xFF1565C0)
-                                )
-                            }
-
-                            DetailItem(
-                                icon = Icons.Default.Straighten,
-                                label = "Distance",
-                                value = "${hike.lengthKm} km",
-                                iconTint = Color(0xFFFF9800)
-                            )
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = Color(0xFF7E57C2).copy(alpha = 0.1f),
-                                    modifier = Modifier.size(48.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Filled.TrendingUp,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(24.dp),
-                                            tint = Color(0xFF7E57C2)
-                                        )
-                                    }
-                                }
-                                Column(
-                                    modifier = Modifier.weight(1f),
-                                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Text(
-                                        text = "Difficulty Level",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                    Surface(
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = when (hike.difficulty.lowercase()) {
-                                            "easy" -> Color(0xFF4CAF50).copy(alpha = 0.15f)
-                                            "moderate" -> Color(0xFFFF9800).copy(alpha = 0.15f)
-                                            "hard" -> Color(0xFFF44336).copy(alpha = 0.15f)
-                                            else -> MaterialTheme.colorScheme.surfaceVariant
-                                        }
-                                    ) {
-                                        Text(
-                                            text = hike.difficulty,
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = when (hike.difficulty.lowercase()) {
-                                                "easy" -> Color(0xFF2E7D32)
-                                                "moderate" -> Color(0xFFE65100)
-                                                "hard" -> Color(0xFFC62828)
-                                                else -> MaterialTheme.colorScheme.onSurface
-                                            },
-                                            modifier = Modifier.padding(
-                                                horizontal = 12.dp,
-                                                vertical = 8.dp
-                                            )
-                                        )
-                                    }
-                                }
-                            }
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = if (hike.parking)
-                                        Color(0xFF4CAF50).copy(alpha = 0.1f)
-                                    else
-                                        Color(0xFFF44336).copy(alpha = 0.1f),
-                                    modifier = Modifier.size(48.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            imageVector = if (hike.parking)
-                                                Icons.Default.LocalParking
-                                            else
-                                                Icons.Default.RemoveCircle,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(24.dp),
-                                            tint = if (hike.parking)
-                                                Color(0xFF4CAF50)
-                                            else
-                                                Color(0xFFF44336)
-                                        )
-                                    }
-                                }
-                                Column(
-                                    modifier = Modifier.weight(1f),
-                                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Text(
-                                        text = "Parking Available",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                    Text(
-                                        text = if (hike.parking) "Yes" else "No",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (hike.parking)
-                                            Color(0xFF4CAF50)
-                                        else
-                                            Color(0xFFF44336)
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // Additional Details Card
-                    if ((hike.description?.isNotBlank() == true) ||
-                        (hike.terrain?.isNotBlank() == true) ||
-                        (hike.expectedWeather?.isNotBlank() == true)
-                    ) {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surface
-                            )
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(20.dp),
-                                verticalArrangement = Arrangement.spacedBy(20.dp)
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                Box(
+                                    modifier = Modifier
+                                        .size(96.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFFEF5350).copy(alpha = 0.2f)),
+                                    contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Description,
+                                        imageVector = Icons.Default.ErrorOutline,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                    Text(
-                                        text = "Additional Details",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold
+                                        modifier = Modifier.size(48.dp),
+                                        tint = Color(0xFFE57373)
                                     )
                                 }
+                            }
+                            Text(
+                                text = "Hike Not Found",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Text(
+                                text = "The hike you're looking for doesn't exist\nor has been deleted.",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = Color.White.copy(alpha = 0.7f),
+                                textAlign = TextAlign.Center,
+                                fontWeight = FontWeight.Light
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Button(
+                                onClick = onBack,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = accentBlue
+                                ),
+                                shape = RoundedCornerShape(14.dp),
+                                elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
+                                Spacer(Modifier.width(8.dp))
+                                Text("Go Back", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
 
-                                HorizontalDivider(thickness = 1.dp)
-
-                                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                                    if (hike.description?.isNotBlank() == true) {
-                                        DetailTextBlock(
-                                            icon = Icons.AutoMirrored.Filled.Notes,
-                                            label = "Description",
-                                            value = hike.description,
-                                            iconTint = Color(0xFF1565C0)
+                is HikeDetailUiState.Ready -> {
+                    val hike = s.hike
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(pv)
+                            .verticalScroll(rememberScrollState())
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = accentBlue.copy(alpha = 0.15f)
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(24.dp),
+                                horizontalArrangement = Arrangement.spacedBy(18.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier.size(70.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(70.dp)
+                                            .blur(15.dp)
+                                            .clip(CircleShape)
+                                            .background(accentBlue.copy(alpha = 0.4f))
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .size(60.dp)
+                                            .clip(CircleShape)
+                                            .background(accentBlue),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Terrain,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(34.dp),
+                                            tint = Color.White
                                         )
                                     }
-
-                                    if (hike.terrain?.isNotBlank() == true) {
-                                        DetailTextBlock(
-                                            icon = Icons.Default.Landscape,
-                                            label = "Terrain Type",
-                                            value = hike.terrain,
-                                            iconTint = Color(0xFF8D6E63)
+                                }
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = hike.name,
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = Color.White,
+                                        fontSize = 24.sp
+                                    )
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.LocationOn,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp),
+                                            tint = Color(0xFFFFB74D)
                                         )
-                                    }
-
-                                    if (hike.expectedWeather?.isNotBlank() == true) {
-                                        DetailTextBlock(
-                                            icon = Icons.Default.WbSunny,
-                                            label = "Expected Weather",
-                                            value = hike.expectedWeather,
-                                            iconTint = Color(0xFFFFA726)
+                                        Text(
+                                            text = hike.location,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = Color.White.copy(alpha = 0.9f),
+                                            fontWeight = FontWeight.Medium
                                         )
                                     }
                                 }
                             }
                         }
-                    }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                        
+                        AnimatedWeatherCard(
+                            weatherState = weatherState,
+                            onRefresh = { weatherVm.refresh() }
+                        )
+
+                        
+                        DarkPhotosCard(
+                            photos = photos,
+                            onAddClick = { showPhotoDialog = true },
+                            onPhotoClick = { selectedPhoto = it },
+                            onPhotoLongClick = {
+                                photoToDelete = it
+                                showDeletePhotoDialog = true
+                            }
+                        )
+
+                        
+                        DarkKeyInfoCard(hike = hike)
+
+                        
+                        if ((hike.description?.isNotBlank() == true) ||
+                            (hike.terrain?.isNotBlank() == true) ||
+                            (hike.expectedWeather?.isNotBlank() == true)
+                        ) {
+                            DarkAdditionalDetailsCard(hike = hike)
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
                 }
             }
         }
     }
 
-    // Photo Dialog
+    
     if (showPhotoDialog) {
-        AlertDialog(
-            onDismissRequest = { showPhotoDialog = false },
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.PhotoCamera,
-                    contentDescription = null,
-                    tint = Color(0xFF1565C0)
-                )
+        DarkPhotoDialog(
+            onDismiss = { showPhotoDialog = false },
+            onCamera = {
+                showPhotoDialog = false
+                if (cameraPermission.status.isGranted) {
+                    capturedImageUri = MediaStoreUtils.createImageUri(context, "mhike_hike")
+                    capturedImageUri?.let { cameraLauncher.launch(it) }
+                } else cameraPermission.launchPermissionRequest()
             },
-            title = {
-                Text(
-                    text = "Add Photo",
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Text(
-                    "Choose how you want to add a photo to this hike",
-                    textAlign = TextAlign.Center,
-                )
-            },
-            confirmButton = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Button(
-                        onClick = {
-                            showPhotoDialog = false
-                            if (cameraPermission.status.isGranted) {
-                                capturedImageUri =
-                                    MediaStoreUtils.createImageUri(context, "mhike_hike")
-                                capturedImageUri?.let { cameraLauncher.launch(it) }
-                            } else {
-                                cameraPermission.launchPermissionRequest()
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF1565C0)
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PhotoCamera,
-                            contentDescription = null
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text("Take Photo")
-                    }
-
-                    OutlinedButton(
-                        onClick = {
-                            showPhotoDialog = false
-                            if (photoPermission.status.isGranted) {
-                                galleryLauncher.launch("image/*")
-                            } else {
-                                photoPermission.launchPermissionRequest()
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PhotoLibrary,
-                            contentDescription = null
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text("Choose from Gallery")
-                    }
-
-                    TextButton(
-                        modifier = Modifier.align(Alignment.End),
-                        onClick = { showPhotoDialog = false }) {
-                        Text("Cancel")
-                    }
-                }
-            },
-            shape = RoundedCornerShape(16.dp)
+            onGallery = {
+                showPhotoDialog = false
+                if (photoPermission.status.isGranted) galleryLauncher.launch("image/*")
+                else photoPermission.launchPermissionRequest()
+            }
         )
     }
 
-    // Full Photo Dialog
+    
     if (selectedPhoto != null) {
-        Dialog(
-            onDismissRequest = { selectedPhoto = null }
-        ) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp)
+        DarkFullPhotoDialog(
+            photo = selectedPhoto!!,
+            onDismiss = { selectedPhoto = null },
+            onDelete = {
+                photoToDelete = selectedPhoto
+                selectedPhoto = null
+                showDeletePhotoDialog = true
+            }
+        )
+    }
+
+    
+    if (showDeletePhotoDialog && photoToDelete != null) {
+        DarkDeletePhotoDialog(
+            onDismiss = {
+                showDeletePhotoDialog = false
+                photoToDelete = null
+            },
+            onConfirm = {
+                photoToDelete?.let { vm.deletePhoto(it) }
+                showDeletePhotoDialog = false
+                photoToDelete = null
+            }
+        )
+    }
+}
+
+@Composable
+private fun DarkPhotosCard(
+    photos: List<Media>,
+    onAddClick: () -> Unit,
+    onPhotoClick: (Media) -> Unit,
+    onPhotoLongClick: (Media) -> Unit
+) {
+    val darkSurface = Color(0xFF1A2F42)
+    val accentBlue = Color(0xFF29B6F6)
+    val lightBlue = Color(0xFF81D4FA)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        colors = CardDefaults.cardColors(containerColor = darkSurface)
+    ) {
+        Box {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                Color(0xFF4FC3F7).copy(alpha = 0.8f),
+                                Color(0xFF29B6F6).copy(alpha = 0.8f),
+                                Color(0xFF03A9F4).copy(alpha = 0.8f)
+                            )
+                        )
+                    )
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 6.dp)
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(accentBlue.copy(alpha = 0.2f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PhotoLibrary,
+                                contentDescription = null,
+                                tint = lightBlue,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                        Text(
+                            text = "Photos",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            fontSize = 20.sp
+                        )
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = accentBlue.copy(alpha = 0.25f)
+                        ) {
+                            Text(
+                                text = photos.size.toString(),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = lightBlue
+                            )
+                        }
+                    }
+
+                    if (photos.isNotEmpty()) {
+                        IconButton(
+                            onClick = onAddClick,
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .background(accentBlue.copy(alpha = 0.2f))
+                        ) {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = "Add photo",
+                                tint = lightBlue
+                            )
+                        }
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    lightBlue.copy(alpha = 0.3f),
+                                    Color.Transparent
+                                )
+                            )
+                        )
+                )
+
+                if (photos.isEmpty()) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(max = 500.dp)
+                            .padding(vertical = 32.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        AsyncImage(
-                            model = selectedPhoto!!.uri.toUri(),
-                            contentDescription = "Full photo",
-                            modifier = Modifier.fillMaxWidth(),
-                            contentScale = ContentScale.Fit
-                        )
-
-                        IconButton(
-                            onClick = { selectedPhoto = null },
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(8.dp)
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            Surface(
-                                shape = CircleShape,
-                                color = Color.Black.copy(alpha = 0.5f)
+                            Box(
+                                modifier = Modifier.size(80.dp),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Close",
-                                    tint = Color.White,
-                                    modifier = Modifier.padding(8.dp)
+                                Box(
+                                    modifier = Modifier
+                                        .size(80.dp)
+                                        .blur(20.dp)
+                                        .clip(CircleShape)
+                                        .background(accentBlue.copy(alpha = 0.3f))
                                 )
+                                Icon(
+                                    imageVector = Icons.Default.PhotoCamera,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(40.dp),
+                                    tint = lightBlue.copy(alpha = 0.7f)
+                                )
+                            }
+                            Text(
+                                text = "No photos yet",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Button(
+                                onClick = onAddClick,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = accentBlue
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.Default.Add, null, modifier = Modifier.size(20.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("Add Photos", fontWeight = FontWeight.Bold)
                             }
                         }
                     }
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        OutlinedButton(
-                            onClick = {
-                                photoToDelete = selectedPhoto
-                                selectedPhoto = null
-                                showDeletePhotoDialog = true
-                            },
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error
+                } else {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        items(photos) { photo ->
+                            DarkPhotoThumbnail(
+                                photo = photo,
+                                onClick = { onPhotoClick(photo) },
+                                onLongClick = { onPhotoLongClick(photo) }
                             )
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = null
-                            )
-                            Spacer(Modifier.width(4.dp))
-                            Text("Delete")
                         }
                     }
                 }
             }
         }
     }
-
-    // Delete photo confirmation
-    if (showDeletePhotoDialog && photoToDelete != null) {
-        AlertDialog(
-            onDismissRequest = { showDeletePhotoDialog = false },
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error
-                )
-            },
-            title = {
-                Text(
-                    text = "Delete Photo?",
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Text("Are you sure you want to delete this photo? This action cannot be undone.")
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        photoToDelete?.let { vm.deletePhoto(it) }
-                        photoToDelete = null
-                        showDeletePhotoDialog = false
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Text("Delete")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    photoToDelete = null
-                    showDeletePhotoDialog = false
-                }) {
-                    Text("Cancel")
-                }
-            },
-            shape = RoundedCornerShape(16.dp)
-        )
-    }
-}
-
-
-@Composable
-fun WeatherDetailCard(
-    icon: ImageVector,
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier,
-    iconTint: Color = MaterialTheme.colorScheme.primary
-) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(28.dp),
-                tint = iconTint
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
-    }
-}
-
-fun getWeatherIcon(description: String): ImageVector {
-    return when {
-        description.contains("clear", ignoreCase = true) -> Icons.Default.WbSunny
-        description.contains("cloud", ignoreCase = true) -> Icons.Default.Cloud
-        description.contains("rain", ignoreCase = true) -> Icons.Default.Umbrella
-        description.contains("snow", ignoreCase = true) -> Icons.Default.AcUnit
-        description.contains("thunder", ignoreCase = true) -> Icons.Default.Bolt
-        description.contains("mist", ignoreCase = true) ||
-                description.contains("fog", ignoreCase = true) -> Icons.Default.Cloud
-
-        else -> Icons.Default.WbCloudy
-    }
 }
 
 @Composable
-fun PhotoThumbnail(
+private fun DarkPhotoThumbnail(
     photo: Media,
     onClick: () -> Unit,
     onLongClick: () -> Unit
@@ -908,8 +644,9 @@ fun PhotoThumbnail(
         modifier = Modifier
             .size(120.dp)
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(14.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0D1F2D))
     ) {
         Box {
             AsyncImage(
@@ -918,7 +655,6 @@ fun PhotoThumbnail(
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
-
             IconButton(
                 onClick = onLongClick,
                 modifier = Modifier
@@ -927,12 +663,12 @@ fun PhotoThumbnail(
             ) {
                 Surface(
                     shape = CircleShape,
-                    color = Color.Black.copy(alpha = 0.5f),
+                    color = Color(0xFFEF5350).copy(alpha = 0.8f),
                     modifier = Modifier.size(28.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete",
+                        Icons.Default.Delete,
+                        "Delete",
                         tint = Color.White,
                         modifier = Modifier
                             .padding(4.dp)
@@ -945,57 +681,362 @@ fun PhotoThumbnail(
 }
 
 @Composable
-fun DetailItem(
+private fun DarkKeyInfoCard(hike: com.mhike.app.domain.model.Hike) {
+    val darkSurface = Color(0xFF1A2F42)
+    val accentBlue = Color(0xFF29B6F6)
+    val lightBlue = Color(0xFF81D4FA)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        colors = CardDefaults.cardColors(containerColor = darkSurface)
+    ) {
+        Box {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                Color(0xFF4FC3F7).copy(alpha = 0.8f),
+                                Color(0xFF29B6F6).copy(alpha = 0.8f),
+                                Color(0xFF03A9F4).copy(alpha = 0.8f)
+                            )
+                        )
+                    )
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 6.dp)
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(accentBlue.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Analytics,
+                            null,
+                            tint = lightBlue,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Text(
+                        text = "Key Information",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        fontSize = 20.sp
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    lightBlue.copy(alpha = 0.3f),
+                                    Color.Transparent
+                                )
+                            )
+                        )
+                )
+
+                hike.date?.let { date ->
+                    DarkDetailItem(
+                        icon = Icons.Default.DateRange,
+                        label = "Date",
+                        value = date.toString(),
+                        iconTint = lightBlue
+                    )
+                }
+
+                DarkDetailItem(
+                    icon = Icons.Default.Straighten,
+                    label = "Distance",
+                    value = "${hike.lengthKm} km",
+                    iconTint = accentBlue
+                )
+
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val (chipBg, chipFg) = when (hike.difficulty.lowercase()) {
+                        "easy" -> Color(0xFF66BB6A).copy(alpha = 0.3f) to Color(0xFF81C784)
+                        "moderate" -> Color(0xFFFFB74D).copy(alpha = 0.3f) to Color(0xFFFFD54F)
+                        "hard" -> Color(0xFFEF5350).copy(alpha = 0.3f) to Color(0xFFE57373)
+                        else -> Color.White.copy(alpha = 0.1f) to Color.White
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(chipBg),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.TrendingUp,
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp),
+                            tint = chipFg
+                        )
+                    }
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "Difficulty Level",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.White.copy(alpha = 0.7f),
+                            fontWeight = FontWeight.Medium
+                        )
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = chipBg
+                        ) {
+                            Text(
+                                text = hike.difficulty,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = chipFg,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                            )
+                        }
+                    }
+                }
+
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val parkingBg = if (hike.parking)
+                        Color(0xFF66BB6A).copy(alpha = 0.3f)
+                    else
+                        Color(0xFFEF5350).copy(alpha = 0.3f)
+                    val parkingFg = if (hike.parking)
+                        Color(0xFF81C784)
+                    else
+                        Color(0xFFE57373)
+
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(parkingBg),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = if (hike.parking) Icons.Default.LocalParking else Icons.Default.RemoveCircle,
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp),
+                            tint = parkingFg
+                        )
+                    }
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "Parking Available",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.White.copy(alpha = 0.7f),
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = if (hike.parking) "Yes" else "No",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = parkingFg
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DarkAdditionalDetailsCard(hike: com.mhike.app.domain.model.Hike) {
+    val darkSurface = Color(0xFF1A2F42)
+    val accentBlue = Color(0xFF29B6F6)
+    val lightBlue = Color(0xFF81D4FA)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        colors = CardDefaults.cardColors(containerColor = darkSurface)
+    ) {
+        Box {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                Color(0xFF4FC3F7).copy(alpha = 0.8f),
+                                Color(0xFF29B6F6).copy(alpha = 0.8f),
+                                Color(0xFF03A9F4).copy(alpha = 0.8f)
+                            )
+                        )
+                    )
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 6.dp)
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(accentBlue.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Description,
+                            null,
+                            tint = lightBlue,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Text(
+                        text = "Additional Details",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        fontSize = 20.sp
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    lightBlue.copy(alpha = 0.3f),
+                                    Color.Transparent
+                                )
+                            )
+                        )
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    if (hike.description?.isNotBlank() == true) {
+                        DarkDetailTextBlock(
+                            icon = Icons.AutoMirrored.Filled.Notes,
+                            label = "Description",
+                            value = hike.description,
+                            iconTint = lightBlue
+                        )
+                    }
+                    if (hike.terrain?.isNotBlank() == true) {
+                        DarkDetailTextBlock(
+                            icon = Icons.Default.Landscape,
+                            label = "Terrain Type",
+                            value = hike.terrain,
+                            iconTint = accentBlue
+                        )
+                    }
+                    if (hike.expectedWeather?.isNotBlank() == true) {
+                        DarkDetailTextBlock(
+                            icon = Icons.Default.WbSunny,
+                            label = "Expected Weather",
+                            value = hike.expectedWeather,
+                            iconTint = Color(0xFFFFB74D)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DarkDetailItem(
     icon: ImageVector,
     label: String,
     value: String,
-    iconTint: Color = MaterialTheme.colorScheme.primary
+    iconTint: Color
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Surface(
-            shape = CircleShape,
-            color = iconTint.copy(alpha = 0.1f),
-            modifier = Modifier.size(48.dp)
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(iconTint.copy(alpha = 0.2f)),
+            contentAlignment = Alignment.Center
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp),
-                    tint = iconTint
-                )
-            }
+            Icon(
+                icon,
+                null,
+                modifier = Modifier.size(24.dp),
+                tint = iconTint
+            )
         }
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
-                text = label,
+                label,
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color.White.copy(alpha = 0.7f),
                 fontWeight = FontWeight.Medium
             )
             Text(
-                text = value,
+                value,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = Color.White
             )
         }
     }
 }
 
 @Composable
-fun DetailTextBlock(
+private fun DarkDetailTextBlock(
     icon: ImageVector,
     label: String,
     value: String,
-    iconTint: Color = MaterialTheme.colorScheme.primary
+    iconTint: Color
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -1006,45 +1047,293 @@ fun DetailTextBlock(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = icon,
-                contentDescription = null,
+                icon,
+                null,
                 modifier = Modifier.size(20.dp),
                 tint = iconTint
             )
             Text(
-                text = label,
+                label,
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color.White.copy(alpha = 0.7f),
                 fontWeight = FontWeight.SemiBold
             )
         }
         Surface(
-            shape = RoundedCornerShape(8.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            shape = RoundedCornerShape(10.dp),
+            color = Color(0xFF0D1F2D).copy(alpha = 0.5f)
         ) {
             Text(
-                text = value,
+                value,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(12.dp)
+                color = Color.White.copy(alpha = 0.9f),
+                modifier = Modifier.padding(14.dp),
+                lineHeight = 20.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun DetailBackgroundStars() {
+    val infiniteTransition = rememberInfiniteTransition(label = "stars")
+    val shimmer by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 400f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = LinearEasing)
+        ),
+        label = "shimmer"
+    )
+
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val width = size.width
+        val height = size.height
+
+        val stars = listOf(
+            Offset(width * 0.15f, height * 0.2f) to 3f,
+            Offset(width * 0.85f, height * 0.15f) to 2.5f,
+            Offset(width * 0.25f, height * 0.35f) to 2f,
+            Offset(width * 0.75f, height * 0.4f) to 3.5f,
+            Offset(width * 0.9f, height * 0.6f) to 2f,
+            Offset(width * 0.1f, height * 0.7f) to 2.5f
+        )
+
+        stars.forEach { (position, baseSize) ->
+            val twinkle = sin(shimmer / 100f + position.x + position.y) * 0.5f + 0.5f
+            drawCircle(
+                color = Color.White.copy(alpha = 0.3f + twinkle * 0.4f),
+                radius = baseSize * (0.8f + twinkle * 0.4f),
+                center = position
             )
         }
     }
 }
 
 
+
+@Composable
+private fun DarkPhotoDialog(
+    onDismiss: () -> Unit,
+    onCamera: () -> Unit,
+    onGallery: () -> Unit
+) {
+    val darkSurface = Color(0xFF1A2F42)
+    val accentBlue = Color(0xFF29B6F6)
+    val lightBlue = Color(0xFF81D4FA)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = darkSurface,
+        icon = {
+            Icon(
+                imageVector = Icons.Default.PhotoCamera,
+                contentDescription = null,
+                tint = lightBlue,
+                modifier = Modifier.size(32.dp)
+            )
+        },
+        title = {
+            Text(
+                text = "Add Photo",
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+        },
+        text = {
+            Text(
+                "Choose how you want to add a photo to this hike",
+                textAlign = TextAlign.Center,
+                color = Color.White.copy(alpha = 0.8f)
+            )
+        },
+        confirmButton = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Button(
+                    onClick = onCamera,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = accentBlue),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.PhotoCamera, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Take Photo", fontWeight = FontWeight.Bold)
+                }
+
+                OutlinedButton(
+                    onClick = onGallery,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = lightBlue
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    border = ButtonDefaults.outlinedButtonBorder.copy(
+                        brush = androidx.compose.ui.graphics.SolidColor(lightBlue.copy(alpha = 0.4f))
+                    )
+                ) {
+                    Icon(Icons.Default.PhotoLibrary, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Choose from Gallery", fontWeight = FontWeight.SemiBold)
+                }
+
+                TextButton(
+                    modifier = Modifier.align(Alignment.End),
+                    onClick = onDismiss,
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = Color.White.copy(alpha = 0.7f)
+                    )
+                ) {
+                    Text("Cancel")
+                }
+            }
+        },
+        shape = RoundedCornerShape(20.dp)
+    )
+}
+
+@Composable
+private fun DarkFullPhotoDialog(
+    photo: Media,
+    onDismiss: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val darkSurface = Color(0xFF1A2F42)
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = darkSurface)
+        ) {
+            Column {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 500.dp)
+                ) {
+                    AsyncImage(
+                        model = photo.uri.toUri(),
+                        contentDescription = "Full photo",
+                        modifier = Modifier.fillMaxWidth(),
+                        contentScale = ContentScale.Fit
+                    )
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color.Black.copy(alpha = 0.6f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = Color.White,
+                                modifier = Modifier.padding(8.dp)
+                            )
+                        }
+                    }
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    OutlinedButton(
+                        onClick = onDelete,
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color(0xFFE57373)
+                        ),
+                        border = ButtonDefaults.outlinedButtonBorder.copy(
+                            brush = androidx.compose.ui.graphics.SolidColor(Color(0xFFEF5350).copy(alpha = 0.4f))
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.Delete, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Delete", fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DarkDeletePhotoDialog(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    val darkSurface = Color(0xFF1A2F42)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = darkSurface,
+        icon = {
+            Icon(
+                Icons.Default.Delete,
+                null,
+                tint = Color(0xFFE57373),
+                modifier = Modifier.size(32.dp)
+            )
+        },
+        title = {
+            Text(
+                text = "Delete Photo?",
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+        },
+        text = {
+            Text(
+                "Are you sure you want to delete this photo? This action cannot be undone.",
+                color = Color.White.copy(alpha = 0.8f)
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFEF5350)
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Delete", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = Color.White.copy(alpha = 0.7f)
+                )
+            ) {
+                Text("Cancel")
+            }
+        },
+        shape = RoundedCornerShape(20.dp)
+    )
+}
+
 @Composable
 fun AnimatedWeatherCard(
     weatherState: WeatherUiState,
     onRefresh: () -> Unit = {}
 ) {
+    val darkSurface = Color(0xFF1A2F42)
+    val accentBlue = Color(0xFF29B6F6)
+    val lightBlue = Color(0xFF81D4FA)
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF64B5F6).copy(alpha = 0.1f)
-        )
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        colors = CardDefaults.cardColors(containerColor = accentBlue.copy(alpha = 0.12f))
     ) {
         Column(
             modifier = Modifier
@@ -1059,43 +1348,67 @@ fun AnimatedWeatherCard(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Cloud,
-                        contentDescription = null,
-                        tint = Color(0xFF1976D2),
-                        modifier = Modifier.size(28.dp)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(accentBlue.copy(alpha = 0.3f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Cloud,
+                            null,
+                            tint = lightBlue,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
                     Text(
-                        text = "Current Weather",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        "Current Weather",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        fontSize = 20.sp
                     )
                 }
-
-                // Refresh button
                 IconButton(
                     onClick = onRefresh,
-                    enabled = weatherState !is WeatherUiState.Loading
+                    enabled = weatherState !is WeatherUiState.Loading,
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(if (weatherState !is WeatherUiState.Loading) accentBlue.copy(alpha = 0.2f) else Color.Transparent)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Refresh weather",
+                        Icons.Default.Refresh,
+                        "Refresh weather",
                         tint = if (weatherState is WeatherUiState.Loading)
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                            Color.White.copy(alpha = 0.4f)
                         else
-                            Color(0xFF1976D2)
+                            lightBlue
                     )
                 }
             }
 
-            HorizontalDivider(thickness = 1.dp)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                lightBlue.copy(alpha = 0.3f),
+                                Color.Transparent
+                            )
+                        )
+                    )
+            )
 
             when (weatherState) {
                 is WeatherUiState.Loading -> {
                     Box(
-                        modifier = Modifier
+                        Modifier
                             .fillMaxWidth()
                             .padding(24.dp),
                         contentAlignment = Alignment.Center
@@ -1105,26 +1418,24 @@ fun AnimatedWeatherCard(
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             CircularProgressIndicator(
-                                color = Color(0xFF1976D2),
+                                color = lightBlue,
                                 strokeWidth = 3.dp,
                                 modifier = Modifier.size(32.dp)
                             )
                             Text(
-                                text = "Loading weather...",
+                                "Loading weather...",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = Color.White.copy(alpha = 0.8f)
                             )
                         }
                     }
                 }
 
-                is WeatherUiState.Success -> {
-                    AnimatedWeatherContent(weather = weatherState.data)
-                }
+                is WeatherUiState.Success -> DarkWeatherContent(weather = weatherState.data)
 
                 is WeatherUiState.Error -> {
                     Box(
-                        modifier = Modifier
+                        Modifier
                             .fillMaxWidth()
                             .padding(24.dp),
                         contentAlignment = Alignment.Center
@@ -1134,21 +1445,21 @@ fun AnimatedWeatherCard(
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.ErrorOutline,
-                                contentDescription = null,
+                                Icons.Default.ErrorOutline,
+                                null,
                                 modifier = Modifier.size(40.dp),
-                                tint = MaterialTheme.colorScheme.error
+                                tint = Color(0xFFE57373)
                             )
                             Text(
-                                text = "Unable to load weather",
+                                "Unable to load weather",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.error
+                                color = Color(0xFFE57373)
                             )
                             Text(
-                                text = weatherState.message,
+                                weatherState.message,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = Color.White.copy(alpha = 0.7f),
                                 textAlign = TextAlign.Center
                             )
                         }
@@ -1157,15 +1468,15 @@ fun AnimatedWeatherCard(
 
                 is WeatherUiState.Idle -> {
                     Box(
-                        modifier = Modifier
+                        Modifier
                             .fillMaxWidth()
                             .padding(24.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Weather information will appear here",
+                            "Weather information will appear here",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = Color.White.copy(alpha = 0.7f)
                         )
                     }
                 }
@@ -1176,19 +1487,17 @@ fun AnimatedWeatherCard(
 
 @SuppressLint("DefaultLocale")
 @Composable
-fun AnimatedWeatherContent(weather: WeatherInfo) {
+fun DarkWeatherContent(weather: WeatherInfo) {
+    val accentBlue = Color(0xFF29B6F6)
+    val lightBlue = Color(0xFF81D4FA)
     val description = (weather.description ?: weather.summary ?: "").lowercase()
 
-    Column(
-        verticalArrangement = Arrangement.spacedBy(20.dp)
-    ) {
-        // Animated weather background
+    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(200.dp)
         ) {
-            // Weather animation based on condition
             when {
                 description.contains("rain") -> RainAnimation()
                 description.contains("snow") -> SnowAnimation()
@@ -1198,7 +1507,6 @@ fun AnimatedWeatherContent(weather: WeatherInfo) {
                 else -> CloudAnimation()
             }
 
-            // Main temperature display overlay
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1207,9 +1515,7 @@ fun AnimatedWeatherContent(weather: WeatherInfo) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(
                         verticalAlignment = Alignment.Top,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -1218,40 +1524,37 @@ fun AnimatedWeatherContent(weather: WeatherInfo) {
                             text = String.format("%.1f", weather.tempC),
                             style = MaterialTheme.typography.displayLarge,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1565C0)
+                            color = Color.White
                         )
                         Text(
                             text = "°C",
                             style = MaterialTheme.typography.headlineMedium,
-                            color = Color(0xFF1565C0),
+                            color = Color.White,
                             modifier = Modifier.padding(top = 8.dp)
                         )
                     }
-
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Icon(
-                            imageVector = getWeatherIcon(description),
-                            contentDescription = null,
+                            getWeatherIcon(description),
+                            null,
                             modifier = Modifier.size(24.dp),
-                            tint = Color(0xFF1976D2)
+                            tint = lightBlue
                         )
                         Text(
-                            text = (weather.description ?: weather.summary ?: "N/A")
-                                .replaceFirstChar { it.uppercase() },
+                            text = (weather.description ?: weather.summary ?: "N/A").replaceFirstChar { it.uppercase() },
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = Color.White
                         )
                     }
                 }
 
-                // Animated weather icon
                 Surface(
                     shape = CircleShape,
-                    color = Color(0xFF64B5F6).copy(alpha = 0.3f),
+                    color = accentBlue.copy(alpha = 0.2f),
                     modifier = Modifier.size(100.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
@@ -1261,87 +1564,133 @@ fun AnimatedWeatherContent(weather: WeatherInfo) {
             }
         }
 
-        // Weather details grid
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Feels Like
             weather.feelsLikeC?.let { feelsLike ->
-                WeatherDetailCard(
+                DarkWeatherDetailCard(
                     icon = Icons.Default.Thermostat,
                     label = "Feels Like",
                     value = String.format("%.1f°C", feelsLike),
                     modifier = Modifier.weight(1f),
-                    iconTint = Color(0xFFFF7043)
+                    iconTint = Color(0xFFFFB74D)
                 )
             }
-
-            // Humidity
             weather.humidityPercent?.let { humidity ->
-                WeatherDetailCard(
+                DarkWeatherDetailCard(
                     icon = Icons.Default.WaterDrop,
                     label = "Humidity",
                     value = "$humidity%",
                     modifier = Modifier.weight(1f),
-                    iconTint = Color(0xFF42A5F5)
+                    iconTint = lightBlue
                 )
             }
         }
 
-        // Second row of details
-        if (weather.windSpeedMs != null || weather.tempMinC != null || weather.tempMaxC != null) {
+        if (weather.windSpeedMs != null || (weather.tempMinC != null && weather.tempMaxC != null)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Wind Speed
                 weather.windSpeedMs?.let { windSpeed ->
-                    WeatherDetailCard(
+                    DarkWeatherDetailCard(
                         icon = Icons.Default.Air,
                         label = "Wind Speed",
                         value = String.format("%.1f m/s", windSpeed),
                         modifier = Modifier.weight(1f),
-                        iconTint = Color(0xFF66BB6A)
+                        iconTint = accentBlue
                     )
                 }
-
-                // Temperature Range (Min/Max)
                 if (weather.tempMinC != null && weather.tempMaxC != null) {
-                    WeatherDetailCard(
+                    DarkWeatherDetailCard(
                         icon = Icons.Default.Thermostat,
                         label = "Min / Max",
                         value = String.format("%.0f° / %.0f°", weather.tempMinC, weather.tempMaxC),
                         modifier = Modifier.weight(1f),
-                        iconTint = Color(0xFF9575CD)
+                        iconTint = Color(0xFF81C784)
                     )
                 }
             }
         }
 
-        // Location info
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = Icons.Default.LocationOn,
-                contentDescription = null,
+                Icons.Default.LocationOn,
+                null,
                 modifier = Modifier.size(16.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = Color.White.copy(alpha = 0.6f)
             )
-            Spacer(modifier = Modifier.width(4.dp))
+            Spacer(Modifier.width(4.dp))
             Text(
                 text = buildString {
                     append(weather.placeName)
                     weather.countryCode?.let { append(", $it") }
                 },
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = Color.White.copy(alpha = 0.7f)
             )
         }
     }
+}
+
+@Composable
+fun DarkWeatherDetailCard(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    iconTint: Color
+) {
+    val darkOverlay = Color(0xFF0D1F2D)
+
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = darkOverlay.copy(alpha = 0.6f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                icon,
+                null,
+                modifier = Modifier.size(28.dp),
+                tint = iconTint
+            )
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.White.copy(alpha = 0.7f),
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                value,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+        }
+    }
+}
+
+fun getWeatherIcon(description: String): ImageVector = when {
+    description.contains("clear", true) -> Icons.Default.WbSunny
+    description.contains("cloud", true) -> Icons.Default.Cloud
+    description.contains("rain", true) -> Icons.Default.Umbrella
+    description.contains("snow", true) -> Icons.Default.AcUnit
+    description.contains("thunder", true) -> Icons.Default.Bolt
+    description.contains("mist", true) || description.contains("fog", true) -> Icons.Default.Cloud
+    else -> Icons.Default.WbCloudy
 }
 
 @Composable
@@ -1362,7 +1711,6 @@ fun AnimatedWeatherIcon(description: String) {
 
             Canvas(modifier = Modifier.size(60.dp)) {
                 rotate(rotation) {
-                    // Draw sun rays
                     for (i in 0 until 8) {
                         val angle = (i * 45f) * (Math.PI / 180f).toFloat()
                         val startX = center.x + cos(angle) * 25.dp.toPx()
@@ -1371,16 +1719,15 @@ fun AnimatedWeatherIcon(description: String) {
                         val endY = center.y + sin(angle) * 35.dp.toPx()
 
                         drawLine(
-                            color = Color(0xFFFFA726),
+                            color = Color(0xFFFFF176),
                             start = Offset(startX, startY),
                             end = Offset(endX, endY),
                             strokeWidth = 4.dp.toPx()
                         )
                     }
                 }
-                // Draw sun center
                 drawCircle(
-                    color = Color(0xFFFFA726),
+                    color = Color(0xFFFFF176),
                     radius = 20.dp.toPx(),
                     center = center
                 )
@@ -1392,7 +1739,7 @@ fun AnimatedWeatherIcon(description: String) {
                 imageVector = getWeatherIcon(description),
                 contentDescription = null,
                 modifier = Modifier.size(60.dp),
-                tint = Color(0xFF1976D2)
+                tint = Color(0xFF81D4FA)
             )
         }
     }
@@ -1400,6 +1747,7 @@ fun AnimatedWeatherIcon(description: String) {
 
 @Composable
 fun RainAnimation() {
+    val lightBlue = Color(0xFF81D4FA)
     val rainDrops = remember {
         List(30) {
             RainDrop(
@@ -1409,9 +1757,8 @@ fun RainAnimation() {
             )
         }
     }
-
     val infiniteTransition = rememberInfiniteTransition(label = "rain")
-    val animationProgress by infiniteTransition.animateFloat(
+    val progress by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
@@ -1420,17 +1767,15 @@ fun RainAnimation() {
         ),
         label = "rain_progress"
     )
-
     Canvas(modifier = Modifier.fillMaxSize()) {
         rainDrops.forEach { drop ->
-            val startY = -50f + (size.height + 50f) * ((animationProgress * drop.speed) % 1f)
+            val startY = -50f + (size.height + 50f) * ((progress * drop.speed) % 1f)
             val x = drop.x * size.width
-
             drawLine(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF64B5F6).copy(alpha = 0.6f),
-                        Color(0xFF64B5F6).copy(alpha = 0.2f)
+                        lightBlue.copy(alpha = 0.6f),
+                        lightBlue.copy(alpha = 0.2f)
                     )
                 ),
                 start = Offset(x, startY),
@@ -1453,9 +1798,8 @@ fun SnowAnimation() {
             )
         }
     }
-
     val infiniteTransition = rememberInfiniteTransition(label = "snow")
-    val animationProgress by infiniteTransition.animateFloat(
+    val progress by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
@@ -1464,13 +1808,11 @@ fun SnowAnimation() {
         ),
         label = "snow_progress"
     )
-
     Canvas(modifier = Modifier.fillMaxSize()) {
         snowFlakes.forEach { flake ->
-            val progress = (animationProgress * flake.speed) % 1f
-            val y = -20f + (size.height + 20f) * progress
-            val x = (flake.x + sin(progress * 10f) * flake.swing) * size.width
-
+            val p = (progress * flake.speed) % 1f
+            val y = -20f + (size.height + 20f) * p
+            val x = (flake.x + sin(p * 10f) * flake.swing) * size.width
             drawCircle(
                 color = Color.White.copy(alpha = 0.8f),
                 radius = flake.size.dp.toPx(),
@@ -1489,9 +1831,8 @@ fun CloudAnimation() {
             CloudData(y = 0.7f, speed = 0.25f, size = 70f)
         )
     }
-
     val infiniteTransition = rememberInfiniteTransition(label = "clouds")
-    val animationProgress by infiniteTransition.animateFloat(
+    val progress by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
@@ -1500,26 +1841,20 @@ fun CloudAnimation() {
         ),
         label = "cloud_progress"
     )
-
     Canvas(modifier = Modifier.fillMaxSize()) {
         clouds.forEach { cloud ->
-            val progress = (animationProgress * cloud.speed) % 1f
-            val x = -cloud.size - 50f + (size.width + cloud.size + 100f) * progress
+            val p = (progress * cloud.speed) % 1f
+            val x = -cloud.size - 50f + (size.width + cloud.size + 100f) * p
             val y = size.height * cloud.y
-
-            // Draw cloud shape
+            val c = Color.White.copy(alpha = 0.4f)
+            drawCircle(color = c, radius = cloud.size.dp.toPx() * 0.5f, center = Offset(x, y))
             drawCircle(
-                color = Color(0xFFB0BEC5).copy(alpha = 0.5f),
-                radius = cloud.size.dp.toPx() * 0.5f,
-                center = Offset(x, y)
-            )
-            drawCircle(
-                color = Color(0xFFB0BEC5).copy(alpha = 0.5f),
+                color = c,
                 radius = cloud.size.dp.toPx() * 0.6f,
                 center = Offset(x + cloud.size.dp.toPx() * 0.4f, y - cloud.size.dp.toPx() * 0.2f)
             )
             drawCircle(
-                color = Color(0xFFB0BEC5).copy(alpha = 0.5f),
+                color = c,
                 radius = cloud.size.dp.toPx() * 0.55f,
                 center = Offset(x + cloud.size.dp.toPx() * 0.8f, y)
             )
@@ -1539,27 +1874,22 @@ fun SunAnimation() {
         ),
         label = "sun_scale"
     )
-
     Canvas(modifier = Modifier.fillMaxSize()) {
         val centerX = size.width * 0.75f
         val centerY = size.height * 0.3f
-
-        // Draw sun glow
         drawCircle(
             brush = Brush.radialGradient(
                 colors = listOf(
-                    Color(0xFFFFA726).copy(alpha = 0.3f),
-                    Color(0xFFFFA726).copy(alpha = 0f)
+                    Color(0xFFFFF176).copy(alpha = 0.3f),
+                    Color(0xFFFFF176).copy(alpha = 0f)
                 ),
                 center = Offset(centerX, centerY)
             ),
             radius = 60.dp.toPx() * scale,
             center = Offset(centerX, centerY)
         )
-
-        // Draw sun
         drawCircle(
-            color = Color(0xFFFFA726).copy(alpha = 0.8f),
+            color = Color(0xFFFFF176).copy(alpha = 0.8f),
             radius = 35.dp.toPx() * scale,
             center = Offset(centerX, centerY)
         )
@@ -1588,17 +1918,9 @@ fun ThunderAnimation() {
     )
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Cloud background
         CloudAnimation()
-
-        // Lightning flash
         Canvas(modifier = Modifier.fillMaxSize()) {
-            // Flash overlay
-            drawRect(
-                color = Color.White.copy(alpha = flashAlpha * 0.3f)
-            )
-
-            // Lightning bolt
+            drawRect(color = Color.White.copy(alpha = flashAlpha * 0.3f))
             if (flashAlpha > 0.3f) {
                 val path = Path().apply {
                     val centerX = size.width * 0.6f
@@ -1610,32 +1932,12 @@ fun ThunderAnimation() {
                     lineTo(centerX + 20.dp.toPx(), size.height * 0.45f)
                     close()
                 }
-
-                drawPath(
-                    path = path,
-                    color = Color(0xFFFFEB3B).copy(alpha = flashAlpha)
-                )
+                drawPath(path = path, color = Color(0xFFFFF176).copy(alpha = flashAlpha))
             }
         }
     }
 }
 
-// Data classes for animations
-data class RainDrop(
-    val x: Float,
-    val speed: Float,
-    val length: Float
-)
-
-data class SnowFlake(
-    val x: Float,
-    val speed: Float,
-    val size: Float,
-    val swing: Float
-)
-
-data class CloudData(
-    val y: Float,
-    val speed: Float,
-    val size: Float
-)
+data class RainDrop(val x: Float, val speed: Float, val length: Float)
+data class SnowFlake(val x: Float, val speed: Float, val size: Float, val swing: Float)
+data class CloudData(val y: Float, val speed: Float, val size: Float)
