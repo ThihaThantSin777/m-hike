@@ -32,7 +32,7 @@ object UseCaseModule {
     @Provides @Singleton
     fun provideSearchHikes(repo: HikeRepository) = SearchHikes(repo)
 
-    // Observation use-cases
+    
     @Provides @Singleton
     fun provideAddObservation(repo: ObservationRepository) = AddObservation(repo)
 

@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -14,6 +15,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,7 +27,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -60,7 +61,6 @@ fun HikeListScreen(
     val darkSurface = Color(0xFF1A2F42)
     val accentBlue = Color(0xFF29B6F6)
     val lightBlue = Color(0xFF81D4FA)
-    val cardBg = Color(0xFF2A4A5E)
 
     Box(
         modifier = Modifier
@@ -82,59 +82,64 @@ fun HikeListScreen(
             topBar = {
                 CenterAlignedTopAppBar(
                     title = {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                "M-Hike",
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 26.sp,
-                                letterSpacing = 1.sp,
+                                text = "Trail Log",
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 20.sp,
+                                letterSpacing = 1.2.sp,
                                 color = Color.White
                             )
-                            Box(
-                                modifier = Modifier
-                                    .width(60.dp)
-                                    .height(3.dp)
-                                    .background(
-                                        brush = Brush.horizontalGradient(
-                                            colors = listOf(
-                                                Color(0xFF4FC3F7),
-                                                Color(0xFF29B6F6),
-                                                Color(0xFF03A9F4)
-                                            )
-                                        )
-                                    )
-                            )
-                            Spacer(Modifier.height(4.dp))
+                            Spacer(Modifier.height(2.dp))
                             Text(
-                                text = "${hikes.size} ADVENTURE${if (hikes.size != 1) "S" else ""}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = lightBlue,
-                                fontWeight = FontWeight.Bold,
+                                text = "${hikes.size} saved hike${if (hikes.size == 1) "" else "s"}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = lightBlue.copy(alpha = 0.9f),
                                 letterSpacing = 2.sp
                             )
                         }
                     },
                     actions = {
-                        IconButton(
+                        
+                        Surface(
                             onClick = onOpenSearch,
+                            shape = RoundedCornerShape(50),
+                            color = Color.White.copy(alpha = 0.06f),
+                            border = ButtonDefaults.outlinedButtonBorder.copy(
+                                brush = Brush.horizontalGradient(
+                                    colors = listOf(
+                                        Color(0xFF4FC3F7),
+                                        Color(0xFF29B6F6)
+                                    )
+                                )
+                            ),
                             modifier = Modifier
-                                .clip(CircleShape)
-                                .background(accentBlue.copy(alpha = 0.15f))
+                                .padding(end = 6.dp)
                         ) {
-                            Icon(
-                                Icons.Default.Search,
-                                contentDescription = "Search",
-                                tint = lightBlue
-                            )
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = "Search",
+                                    tint = lightBlue,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Text(
+                                    text = "Search",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = lightBlue
+                                )
+                            }
                         }
 
                         IconButton(onClick = { menuOpen = true }) {
                             Icon(
                                 Icons.Default.MoreVert,
                                 contentDescription = "Menu",
-                                tint = Color.White.copy(alpha = 0.8f)
+                                tint = Color.White.copy(alpha = 0.9f)
                             )
                         }
 
@@ -147,7 +152,7 @@ fun HikeListScreen(
                             DropdownMenuItem(
                                 text = {
                                     Row(
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Icon(
@@ -155,11 +160,18 @@ fun HikeListScreen(
                                             contentDescription = null,
                                             tint = Color(0xFFEF5350)
                                         )
-                                        Text(
-                                            "Reset Database",
-                                            fontWeight = FontWeight.Medium,
-                                            color = Color.White
-                                        )
+                                        Column {
+                                            Text(
+                                                "Reset Database",
+                                                fontWeight = FontWeight.Medium,
+                                                color = Color.White
+                                            )
+                                            Text(
+                                                "Remove all hikes & observations",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = Color.White.copy(alpha = 0.7f)
+                                            )
+                                        }
                                     }
                                 },
                                 onClick = {
@@ -178,31 +190,48 @@ fun HikeListScreen(
             },
             floatingActionButton = {
                 if (hikes.isNotEmpty()) {
+                    
                     FloatingActionButton(
                         onClick = onAddClick,
-                        containerColor = accentBlue,
-                        contentColor = Color.White,
-                        shape = RoundedCornerShape(18.dp),
+                        containerColor = Color.Transparent,
+                        shape = RoundedCornerShape(20.dp),
                         elevation = FloatingActionButtonDefaults.elevation(
                             defaultElevation = 8.dp,
                             pressedElevation = 12.dp
                         )
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 20.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    brush = Brush.horizontalGradient(
+                                        colors = listOf(
+                                            Color(0xFF4FC3F7),
+                                            Color(0xFF29B6F6),
+                                            Color(0xFF03A9F4)
+                                        )
+                                    ),
+                                    shape = RoundedCornerShape(20.dp)
+                                )
                         ) {
-                            Icon(
-                                Icons.Default.Add,
-                                contentDescription = null,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Text(
-                                "New Hike",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
-                            )
+                            Row(
+                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Add,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(22.dp),
+                                    tint = Color(0xFF021019)
+                                )
+                                Text(
+                                    "New Hike",
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 15.sp,
+                                    color = Color(0xFF021019),
+                                    letterSpacing = 0.8.sp
+                                )
+                            }
                         }
                     }
                 }
@@ -214,101 +243,72 @@ fun HikeListScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(pv)
-                        .padding(32.dp),
+                        .padding(pv),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(32.dp)
+                    Surface(
+                        modifier = Modifier
+                            .padding(horizontal = 24.dp),
+                        shape = RoundedCornerShape(24.dp),
+                        color = Color(0xFF102538).copy(alpha = 0.85f)
                     ) {
-                        
-                        Box(
-                            modifier = Modifier.size(120.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            
-                            Box(
-                                modifier = Modifier
-                                    .size(140.dp)
-                                    .blur(30.dp)
-                            ) {
-                                MiniMountainIcon(glowMode = true)
-                            }
-                            
-                            MiniMountainIcon(glowMode = false)
-                        }
-
                         Column(
+                            modifier = Modifier.padding(24.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                            verticalArrangement = Arrangement.spacedBy(18.dp)
                         ) {
-                            Text(
-                                text = "No Adventures Yet",
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = Color.White,
-                                letterSpacing = 0.5.sp
-                            )
-
                             Box(
-                                modifier = Modifier
-                                    .width(80.dp)
-                                    .height(3.dp)
-                                    .background(
-                                        brush = Brush.horizontalGradient(
-                                            colors = listOf(
-                                                Color(0xFF4FC3F7),
-                                                Color(0xFF29B6F6),
-                                                Color(0xFF03A9F4)
-                                            )
-                                        )
-                                    )
-                            )
+                                modifier = Modifier.size(120.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(140.dp)
+                                        .blur(24.dp)
+                                ) {
+                                    MiniMountainIcon(glowMode = true)
+                                }
+                                MiniMountainIcon(glowMode = false)
+                            }
 
-                            Spacer(Modifier.height(4.dp))
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "No hikes logged yet",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color.White,
+                                    letterSpacing = 0.6.sp
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = "Create your first trail and start recording\nyour journeys, notes, and observations.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.White.copy(alpha = 0.75f),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    lineHeight = 20.sp
+                                )
+                            }
 
-                            Text(
-                                text = "EXPLORE • TRACK • DISCOVER",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = lightBlue,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 2.sp
-                            )
-                        }
-
-                        Text(
-                            text = "Every mountain conquered, every trail explored,\nevery moment captured. Start your journey today.",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = Color.White.copy(alpha = 0.7f),
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                            lineHeight = 24.sp,
-                            fontWeight = FontWeight.Light
-                        )
-
-                        Spacer(Modifier.height(8.dp))
-
-                        Button(
-                            onClick = onAddClick,
-                            shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = accentBlue
-                            ),
-                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp),
-                            contentPadding = PaddingValues(horizontal = 36.dp, vertical = 18.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Add,
-                                contentDescription = null,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(Modifier.width(12.dp))
-                            Text(
-                                "Begin Your Adventure",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 17.sp,
-                                letterSpacing = 0.5.sp
-                            )
+                            Button(
+                                onClick = onAddClick,
+                                shape = RoundedCornerShape(16.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = accentBlue
+                                ),
+                                contentPadding = PaddingValues(horizontal = 28.dp, vertical = 12.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Add,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    "Add your first hike",
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 15.sp
+                                )
+                            }
                         }
                     }
                 }
@@ -317,7 +317,7 @@ fun HikeListScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(pv),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 20.dp)
                 ) {
                     items(items = hikes, key = { it.id }) { hike ->
@@ -352,7 +352,6 @@ fun HikeListScreen(
         )
     }
 
-    
     if (showDeleteConfirm && hikeToDelete != null) {
         ConfirmDialog(
             title = "Delete Hike?",
@@ -371,6 +370,7 @@ fun HikeListScreen(
     }
 }
 
+
 @Composable
 fun DarkHikeCard(
     hike: Hike,
@@ -381,8 +381,7 @@ fun DarkHikeCard(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    
-    val cardBg = Color(0xFF1A2F42)
+    val cardBg = Color(0xFF101F33)
     val accentBlue = Color(0xFF29B6F6)
     val lightBlue = Color(0xFF81D4FA)
     val darkOverlay = Color(0xFF0D1F2D)
@@ -397,309 +396,298 @@ fun DarkHikeCard(
             pressedElevation = 8.dp
         ),
         colors = CardDefaults.cardColors(
-            containerColor = cardBg
+            containerColor = cardBg.copy(alpha = 0.96f)
         )
     ) {
-        Box {
-            
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-                    .background(
-                        brush = Brush.horizontalGradient(
-                            colors = listOf(
-                                Color(0xFF4FC3F7).copy(alpha = 0.6f),
-                                Color(0xFF29B6F6).copy(alpha = 0.6f),
-                                Color(0xFF03A9F4).copy(alpha = 0.6f)
-                            )
-                        )
-                    )
-            )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp)
+        ) {
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp)
-                    .padding(horizontal = 20.dp, vertical = 16.dp)
+            
+            
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        
-                        Box(
-                            modifier = Modifier.size(56.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(56.dp)
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(accentBlue.copy(alpha = 0.15f))
-                                    .blur(8.dp)
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .size(56.dp)
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(accentBlue.copy(alpha = 0.2f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Terrain,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(28.dp),
-                                    tint = lightBlue
-                                )
-                            }
-                        }
-
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Text(
-                                text = hike.name,
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                fontSize = 20.sp
-                            )
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.CalendarToday,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(14.dp),
-                                    tint = lightBlue
-                                )
-                                Text(
-                                    text = hike.date.toString(),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = lightBlue,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 13.sp
-                                )
-                            }
-                        }
+                        Icon(
+                            imageVector = Icons.Default.CalendarToday,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = lightBlue
+                        )
+                        Text(
+                            text = hike.date.toString(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = lightBlue.copy(alpha = 0.95f),
+                            fontSize = 12.sp
+                        )
                     }
 
-                    Surface(
-                        shape = CircleShape,
-                        color = accentBlue.copy(alpha = 0.2f),
-                        modifier = Modifier.size(36.dp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                contentDescription = if (expanded) "Collapse" else "Expand",
-                                tint = lightBlue,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = Color(0xFFFFB74D)
+                        )
+                        Text(
+                            text = hike.location,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.9f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
 
-                Spacer(Modifier.height(16.dp))
-
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = darkOverlay.copy(alpha = 0.6f),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.LocationOn,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                                tint = Color(0xFFFFB74D)
-                            )
-                            Text(
-                                text = hike.location,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color.White.copy(alpha = 0.9f),
-                                fontWeight = FontWeight.Medium,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
+                if (hike.difficulty.isNotEmpty()) {
+                    val (bg, fg) = when (hike.difficulty.lowercase()) {
+                        "easy" -> Color(0xFF66BB6A).copy(alpha = 0.18f) to Color(0xFF81C784)
+                        "moderate" -> Color(0xFFFFB74D).copy(alpha = 0.18f) to Color(0xFFFFD54F)
+                        "hard" -> Color(0xFFEF5350).copy(alpha = 0.18f) to Color(0xFFE57373)
+                        else -> Color.White.copy(alpha = 0.12f) to Color.White.copy(alpha = 0.9f)
                     }
 
                     DarkPill(
-                        icon = Icons.Default.Straighten,
-                        text = "${hike.lengthKm} km",
-                        containerColor = accentBlue.copy(alpha = 0.2f),
-                        contentColor = lightBlue
+                        icon = Icons.AutoMirrored.Filled.TrendingUp,
+                        text = hike.difficulty,
+                        containerColor = bg,
+                        contentColor = fg
                     )
                 }
+            }
 
-                
-                if (!hike.description.isNullOrEmpty()) {
-                    Spacer(Modifier.height(14.dp))
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = darkOverlay.copy(alpha = 0.4f)
-                    ) {
-                        Text(
-                            text = hike.description,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.White.copy(alpha = 0.8f),
-                            modifier = Modifier.padding(14.dp),
-                            maxLines = if (expanded) Int.MAX_VALUE else 2,
-                            overflow = TextOverflow.Ellipsis,
-                            lineHeight = 20.sp
-                        )
-                    }
-                }
+            Spacer(Modifier.height(10.dp))
 
-                
-                if (hike.difficulty.isNotEmpty() || hike.parking) {
-                    Spacer(Modifier.height(14.dp))
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        if (hike.difficulty.isNotEmpty()) {
-                            val (bg, fg) = when (hike.difficulty.lowercase()) {
-                                "easy" -> Color(0xFF66BB6A).copy(alpha = 0.2f) to Color(0xFF81C784)
-                                "moderate" -> Color(0xFFFFB74D).copy(alpha = 0.2f) to Color(0xFFFFD54F)
-                                "hard" -> Color(0xFFEF5350).copy(alpha = 0.2f) to Color(0xFFE57373)
-                                else -> Color.White.copy(alpha = 0.1f) to Color.White.copy(alpha = 0.8f)
-                            }
-
-                            Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = bg
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.TrendingUp,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp),
-                                        tint = fg
-                                    )
-                                    Text(
-                                        text = hike.difficulty,
-                                        style = MaterialTheme.typography.labelLarge,
-                                        fontWeight = FontWeight.Bold,
-                                        color = fg
-                                    )
-                                }
-                            }
-                        }
-
-                        if (hike.parking) {
-                            DarkPill(
-                                icon = Icons.Default.LocalParking,
-                                text = "Parking",
-                                containerColor = Color(0xFF42A5F5).copy(alpha = 0.2f),
-                                contentColor = Color(0xFF90CAF9)
-                            )
-                        }
-                    }
-                }
-
-                
-                AnimatedVisibility(
-                    visible = expanded,
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically()
+            
+            
+            
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = Color.White.copy(alpha = 0.06f),
+                    modifier = Modifier.size(34.dp)
                 ) {
-                    Column {
-                        Spacer(Modifier.height(20.dp))
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(1.dp)
-                                .background(
-                                    brush = Brush.horizontalGradient(
-                                        colors = listOf(
-                                            Color.Transparent,
-                                            lightBlue.copy(alpha = 0.3f),
-                                            Color.Transparent
-                                        )
-                                    )
-                                )
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Terrain,
+                            contentDescription = null,
+                            tint = lightBlue,
+                            modifier = Modifier.size(20.dp)
                         )
+                    }
+                }
 
-                        Spacer(Modifier.height(16.dp))
+                Text(
+                    text = hike.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            DarkActionButton(
-                                icon = Icons.Default.Info,
-                                label = "Details",
-                                onClick = onCardClick,
-                                containerColor = accentBlue.copy(alpha = 0.2f),
-                                contentColor = lightBlue,
-                                modifier = Modifier.weight(1f)
-                            )
+            
+            
+            
+            Spacer(Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                DarkPill(
+                    icon = Icons.Default.Straighten,
+                    text = "${hike.lengthKm} km",
+                    containerColor = accentBlue.copy(alpha = 0.18f),
+                    contentColor = lightBlue
+                )
 
-                            DarkActionButton(
-                                icon = Icons.Default.Visibility,
-                                label = "Observations",
-                                onClick = onObservationsClick,
-                                containerColor = Color(0xFF26A69A).copy(alpha = 0.2f),
-                                contentColor = Color(0xFF80CBC4),
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
+                if (hike.parking) {
+                    Spacer(Modifier.width(8.dp))
+                    DarkPill(
+                        icon = Icons.Default.LocalParking,
+                        text = "Parking",
+                        containerColor = Color(0xFF42A5F5).copy(alpha = 0.2f),
+                        contentColor = Color(0xFF90CAF9)
+                    )
+                }
+            }
 
-                        Spacer(Modifier.height(10.dp))
+            
+            
+            
+            if (!hike.description.isNullOrEmpty()) {
+                Spacer(Modifier.height(10.dp))
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = darkOverlay.copy(alpha = 0.7f)
+                ) {
+                    Text(
+                        text = hike.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.86f),
+                        modifier = Modifier.padding(12.dp),
+                        maxLines = if (expanded) Int.MAX_VALUE else 2,
+                        overflow = TextOverflow.Ellipsis,
+                        lineHeight = 18.sp
+                    )
+                }
+            }
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            DarkActionButton(
-                                icon = Icons.Default.Edit,
-                                label = "Edit",
-                                onClick = onEditClick,
-                                containerColor = Color(0xFFAB47BC).copy(alpha = 0.2f),
-                                contentColor = Color(0xFFCE93D8),
-                                modifier = Modifier.weight(1f)
-                            )
+            
+            
+            
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                
+                Text(
+                    text = if (expanded) "Tap to collapse" else "Tap to see actions",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.6f)
+                )
 
-                            DarkActionButton(
-                                icon = Icons.Default.Delete,
-                                label = "Delete",
-                                onClick = onDeleteClick,
-                                containerColor = Color(0xFFEF5350).copy(alpha = 0.2f),
-                                contentColor = Color(0xFFE57373),
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
+                Surface(
+                    shape = CircleShape,
+                    color = Color.White.copy(alpha = 0.08f),
+                    modifier = Modifier.size(26.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = if (expanded) "Collapse" else "Expand",
+                            tint = lightBlue,
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
                 }
             }
+
+            
+            
+            
+            AnimatedVisibility(
+                visible = expanded,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                Column {
+                    Spacer(Modifier.height(12.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .background(
+                                brush = Brush.horizontalGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        lightBlue.copy(alpha = 0.35f),
+                                        Color.Transparent
+                                    )
+                                )
+                            )
+                    )
+
+                    Spacer(Modifier.height(8.dp))
+
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Quick actions",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.White.copy(alpha = 0.7f),
+                            fontWeight = FontWeight.SemiBold
+                        )
+
+                        Text(
+                            text = "Tap an action below",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White.copy(alpha = 0.5f)
+                        )
+                    }
+
+                    Spacer(Modifier.height(10.dp))
+
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        IconActionChip(
+                            icon = Icons.Default.Info,
+                            label = "Details",
+                            containerColor = accentBlue.copy(alpha = 0.18f),
+                            contentColor = lightBlue,
+                            onClick = onCardClick,
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        IconActionChip(
+                            icon = Icons.Default.Visibility,
+                            label = "Observations",
+                            containerColor = Color(0xFF26A69A).copy(alpha = 0.18f),
+                            contentColor = Color(0xFF80CBC4),
+                            onClick = onObservationsClick,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Spacer(Modifier.height(8.dp))
+
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        IconActionChip(
+                            icon = Icons.Default.Edit,
+                            label = "Edit",
+                            containerColor = Color(0xFFAB47BC).copy(alpha = 0.18f),
+                            contentColor = Color(0xFFCE93D8),
+                            onClick = onEditClick,
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        IconActionChip(
+                            icon = Icons.Default.Delete,
+                            label = "Delete",
+                            containerColor = Color(0xFFEF5350).copy(alpha = 0.18f),
+                            contentColor = Color(0xFFE57373),
+                            onClick = onDeleteClick,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+
         }
     }
 }
@@ -712,68 +700,35 @@ private fun DarkPill(
     contentColor: Color
 ) {
     Surface(
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(999.dp),
         color = containerColor
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(14.dp),
                 tint = contentColor
             )
             Text(
                 text = text,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
                 color = contentColor
             )
         }
     }
 }
 
-@Composable
-private fun DarkActionButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    onClick: () -> Unit,
-    containerColor: Color,
-    contentColor: Color,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        onClick = onClick,
-        modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
-        color = containerColor
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 14.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = contentColor
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = label,
-                fontWeight = FontWeight.Bold,
-                color = contentColor,
-                style = MaterialTheme.typography.labelLarge
-            )
-        }
-    }
-}
+
+
+/* ----------------------------------------------------------------
+   BACKGROUND COMPONENTS – left EXACTLY as you wrote them
+   ---------------------------------------------------------------- */
 
 @Composable
 private fun AnimatedBackgroundStars() {
@@ -910,3 +865,61 @@ private fun MiniMountainIcon(glowMode: Boolean = false) {
         }
     }
 }
+
+@Composable
+private fun IconActionChip(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    containerColor: Color,
+    contentColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        color = containerColor.copy(alpha = 0.9f),
+        border = BorderStroke(
+            width = 1.dp,
+            color = contentColor.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            
+            Box(
+                modifier = Modifier
+                    .size(30.dp)
+                    .background(
+                        color = Color.Black.copy(alpha = 0.18f),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = contentColor
+                )
+            }
+
+            Text(
+                text = label.uppercase(),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = contentColor,
+                letterSpacing = 1.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+

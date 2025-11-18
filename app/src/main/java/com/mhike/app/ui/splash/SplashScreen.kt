@@ -56,7 +56,6 @@ fun SplashScreen(
         label = "scale-in"
     )
 
-    
     val alphaAnimation by animateFloatAsState(
         targetValue = if (startAnimation) 1f else 0f,
         animationSpec = tween(
@@ -67,7 +66,6 @@ fun SplashScreen(
         label = "fade"
     )
 
-    
     val infinite = rememberInfiniteTransition(label = "infinite")
 
     val pulse by infinite.animateFloat(
@@ -95,7 +93,6 @@ fun SplashScreen(
         label = "shimmer"
     )
 
-    
     val pathProgress by infinite.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
@@ -108,7 +105,6 @@ fun SplashScreen(
 
     LaunchedEffect(Unit) {
         startAnimation = true
-        
         delay(4000)
         navController.navigate(Destinations.HikeList.route) {
             popUpTo(0)
@@ -121,9 +117,9 @@ fun SplashScreen(
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF0A1929),
-                        Color(0xFF1A2F42),
-                        Color(0xFF2A4A5E)
+                        Color(0xFF020616),
+                        Color(0xFF071A2C),
+                        Color(0xFF042F3E)
                     )
                 )
             ),
@@ -132,7 +128,6 @@ fun SplashScreen(
         
         AnimatedStars(shimmerShift = shimmerShift)
 
-        
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
@@ -147,9 +142,9 @@ fun SplashScreen(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(160.dp)
-                        .alpha(0.3f)
-                        .blur(24.dp)
+                        .size(170.dp)
+                        .alpha(0.4f)
+                        .blur(30.dp)
                 ) {
                     MountainIcon(glowMode = true)
                 }
@@ -160,40 +155,40 @@ fun SplashScreen(
 
             Text(
                 text = "M-Hike",
-                fontSize = 56.sp,
+                fontSize = 46.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = Color.White,
-                letterSpacing = 1.5.sp,
+                color = Color(0xFFE0F7FA),
+                letterSpacing = 2.sp,
                 modifier = Modifier.alpha(alphaAnimation),
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             Box(
                 modifier = Modifier
-                    .width(80.dp)
-                    .height(4.dp)
+                    .width(120.dp)
+                    .height(5.dp)
                     .alpha(alphaAnimation)
                     .background(
                         brush = Brush.horizontalGradient(
                             colors = listOf(
-                                Color(0xFF4FC3F7),
-                                Color(0xFF29B6F6),
-                                Color(0xFF03A9F4)
+                                Color(0xFF00E5FF),
+                                Color(0xFF1DE9B6),
+                                Color(0xFF00E676)
                             )
                         )
                     )
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
             Text(
-                text = "EXPLORE • TRACK • DISCOVER",
-                color = Color(0xFF81D4FA),
-                fontSize = 13.sp,
+                text = "MAP • TRAILS • ELEVATION",
+                color = Color(0xFF80DEEA),
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
-                letterSpacing = 3.sp,
+                letterSpacing = 4.sp,
                 modifier = Modifier.alpha(alphaAnimation),
                 textAlign = TextAlign.Center
             )
@@ -210,28 +205,29 @@ fun SplashScreen(
             Box(
                 modifier = Modifier
                     .height(1.dp)
-                    .width(60.dp)
-                    .background(Color.White.copy(alpha = 0.3f))
+                    .width(80.dp)
+                    .background(Color.White.copy(alpha = 0.15f))
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Your Adventure Starts Here",
-                color = Color.White.copy(alpha = 0.6f),
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Light,
-                letterSpacing = 1.sp
+                text = "Navigate Every Step With Confidence",
+                color = Color.White.copy(alpha = 0.7f),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Normal,
+                letterSpacing = 1.2.sp,
+                textAlign = TextAlign.Center
             )
         }
 
         
         MovingMHikeTag(
             progress = pathProgress,
-            label = "TRAILBLAZE", 
+            label = "LIVE TRAIL STATUS",
             modifier = Modifier
                 .align(Alignment.Center)
-                .padding(top = 380.dp)
+                .padding(top = 360.dp)
         )
     }
 }
@@ -242,22 +238,74 @@ private fun AnimatedStars(shimmerShift: Float) {
         val width = size.width
         val height = size.height
 
-        val stars = listOf(
-            Offset(width * 0.15f, height * 0.2f) to 3f,
-            Offset(width * 0.85f, height * 0.15f) to 2.5f,
-            Offset(width * 0.25f, height * 0.35f) to 2f,
-            Offset(width * 0.75f, height * 0.4f) to 3.5f,
-            Offset(width * 0.9f, height * 0.6f) to 2f,
-            Offset(width * 0.1f, height * 0.7f) to 2.5f,
-            Offset(width * 0.5f, height * 0.25f) to 1.8f,
-            Offset(width * 0.65f, height * 0.75f) to 2.2f
+        
+        val auroraPath = Path().apply {
+            moveTo(width * 0.1f, height)
+            cubicTo(
+                width * 0.25f, height * 0.6f,
+                width * 0.05f, height * 0.4f,
+                width * 0.3f, height * 0.1f
+            )
+            lineTo(width * 0.45f, 0f)
+            lineTo(width * 0.15f, 0f)
+            close()
+        }
+
+        drawPath(
+            path = auroraPath,
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    Color(0x2200E5FF),
+                    Color(0x4400E676),
+                    Color.Transparent
+                )
+            ),
+            style = Fill
         )
 
-        stars.forEach { (position, baseSize) ->
-            val twinkle = sin(shimmerShift / 100f + position.x + position.y) * 0.5f + 0.5f
+        
+        val orbs = listOf(
+            Offset(width * 0.2f, height * 0.25f) to 32f,
+            Offset(width * 0.8f, height * 0.2f) to 26f,
+            Offset(width * 0.25f, height * 0.6f) to 24f,
+            Offset(width * 0.7f, height * 0.7f) to 30f,
+            Offset(width * 0.5f, height * 0.35f) to 20f
+        )
+
+        orbs.forEachIndexed { index, (center, baseRadius) ->
+            val phase = shimmerShift / 80f + index * 0.8f
+            val pulse = sin(phase) * 0.5f + 0.5f
+
             drawCircle(
-                color = Color.White.copy(alpha = 0.3f + twinkle * 0.4f),
-                radius = baseSize * (0.8f + twinkle * 0.4f),
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color(0x66B2EBF2),
+                        Color.Transparent
+                    )
+                ),
+                radius = baseRadius * (1.2f + pulse * 0.5f),
+                center = Offset(
+                    x = center.x + sin(phase) * 10f,
+                    y = center.y + sin(phase * 1.3f) * 8f
+                )
+            )
+        }
+
+        
+        val stars = listOf(
+            Offset(width * 0.15f, height * 0.18f),
+            Offset(width * 0.9f, height * 0.12f),
+            Offset(width * 0.3f, height * 0.32f),
+            Offset(width * 0.75f, height * 0.42f),
+            Offset(width * 0.5f, height * 0.18f),
+            Offset(width * 0.1f, height * 0.55f)
+        )
+
+        stars.forEachIndexed { index, position ->
+            val twinkle = sin(shimmerShift / 90f + index) * 0.5f + 0.5f
+            drawCircle(
+                color = Color.White.copy(alpha = 0.35f + twinkle * 0.4f),
+                radius = 1.2f + twinkle * 1.5f,
                 center = position
             )
         }
@@ -268,7 +316,7 @@ private fun AnimatedStars(shimmerShift: Float) {
 private fun MovingMHikeTag(
     progress: Float,
     modifier: Modifier = Modifier,
-    label: String = "TRAILBLAZE"
+    label: String = "LIVE TRAIL STATUS"
 ) {
     val density = LocalDensity.current
 
@@ -278,9 +326,9 @@ private fun MovingMHikeTag(
     val boxHeightPx = with(density) { boxHeightDp.toPx() }
 
     
-    val p0 = Offset(boxWidthPx * 0.1f, boxHeightPx * 0.8f)
-    val p1 = Offset(boxWidthPx * 0.5f, boxHeightPx * 0.1f)
-    val p2 = Offset(boxWidthPx * 0.9f, boxHeightPx * 0.8f)
+    val p0 = Offset(boxWidthPx * 0.1f, boxHeightPx * 0.85f)
+    val p1 = Offset(boxWidthPx * 0.5f, boxHeightPx * 0.25f)
+    val p2 = Offset(boxWidthPx * 0.9f, boxHeightPx * 0.85f)
 
     val t = progress.coerceIn(0f, 1f)
     val pos = quadBezier(p0, p1, p2, t)
@@ -288,8 +336,7 @@ private fun MovingMHikeTag(
     val xDp = with(density) { pos.x.toDp() }
     val yDp = with(density) { pos.y.toDp() }
 
-    
-    val depthScale = 0.94f + 0.12f * kotlin.math.sin(t * Math.PI).toFloat()
+    val depthScale = 0.92f + 0.14f * sin(t * Math.PI).toFloat()
 
     Box(
         modifier = modifier
@@ -302,21 +349,41 @@ private fun MovingMHikeTag(
                 .background(
                     brush = Brush.linearGradient(
                         colors = listOf(
-                            Color(0xFF0288D1),
-                            Color(0xFF0277BD)
+                            Color(0x3300E5FF),
+                            Color(0x3300E676)
                         )
                     ),
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(32.dp)
                 )
-                .padding(horizontal = 14.dp, vertical = 8.dp)
+                .padding(horizontal = 16.dp, vertical = 10.dp)
         ) {
-            Text(
-                text = label,
-                color = Color.White,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.2.sp
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(18.dp)
+                        .background(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    Color(0xFF00E5FF),
+                                    Color(0xFF00BFA5)
+                                )
+                            ),
+                            shape = androidx.compose.foundation.shape.CircleShape
+                        )
+                )
+
+                Spacer(modifier = Modifier.width(10.dp))
+
+                Text(
+                    text = label,
+                    color = Color(0xFFE0F7FA),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 1.4.sp
+                )
+            }
         }
     }
 }
@@ -333,100 +400,112 @@ fun MountainIcon(glowMode: Boolean = false) {
     Canvas(modifier = Modifier.fillMaxSize()) {
         val width = size.width
         val height = size.height
+        val center = Offset(width / 2f, height / 2f)
+        val radius = width * 0.35f
 
         if (glowMode) {
-            val glowPath = Path().apply {
-                moveTo(0f, height)
-                lineTo(width * 0.35f, height * 0.2f)
-                lineTo(width * 0.6f, height)
-                close()
-
-                moveTo(width * 0.25f, height)
-                lineTo(width * 0.5f, height * 0.35f)
-                lineTo(width * 0.75f, height)
-                close()
-
-                moveTo(width * 0.4f, height)
-                lineTo(width * 0.65f, height * 0.25f)
-                lineTo(width, height)
-                close()
-            }
-            drawPath(path = glowPath, color = Color(0xFF29B6F6), style = Fill)
-        } else {
-            val path1 = Path().apply {
-                moveTo(0f, height)
-                lineTo(width * 0.35f, height * 0.2f)
-                lineTo(width * 0.6f, height)
-                close()
-            }
-
-            val path2 = Path().apply {
-                moveTo(width * 0.25f, height)
-                lineTo(width * 0.5f, height * 0.35f)
-                lineTo(width * 0.75f, height)
-                close()
-            }
-
-            val path3 = Path().apply {
-                moveTo(width * 0.4f, height)
-                lineTo(width * 0.65f, height * 0.25f)
-                lineTo(width, height)
-                close()
-            }
-
-            drawPath(
-                path = path1,
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFFE1F5FE),
-                        Color(0xFFB3E5FC)
-                    )
-                ),
-                style = Fill
-            )
-            drawPath(
-                path = path2,
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF81D4FA),
-                        Color(0xFF4FC3F7)
-                    )
-                ),
-                style = Fill
-            )
-            drawPath(
-                path = path3,
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF29B6F6),
-                        Color(0xFF03A9F4)
-                    )
-                ),
-                style = Fill
-            )
-
-            drawPath(
-                path = path2,
-                color = Color.White.copy(alpha = 0.5f),
-                style = Stroke(width = 2f)
-            )
-
             
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFFFFF9C4),
-                        Color(0xFFFFF59D),
-                        Color(0xFFFFF176)
+                        Color(0x4400E5FF),
+                        Color.Transparent
                     )
                 ),
-                radius = width * 0.13f,
-                center = Offset(width * 0.5f, height * 0.15f)
+                radius = radius * 1.8f,
+                center = center
             )
             drawCircle(
-                color = Color(0xFFFFF176).copy(alpha = 0.3f),
-                radius = width * 0.17f,
-                center = Offset(width * 0.5f, height * 0.15f)
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color(0x3300E676),
+                        Color.Transparent
+                    )
+                ),
+                radius = radius * 1.4f,
+                center = center
+            )
+        } else {
+            
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color(0xFF0D192B),
+                        Color(0xFF021018)
+                    )
+                ),
+                radius = radius,
+                center = center
+            )
+
+            
+            drawCircle(
+                brush = Brush.sweepGradient(
+                    colors = listOf(
+                        Color(0xFF00E5FF),
+                        Color(0xFF1DE9B6),
+                        Color(0xFF00E676),
+                        Color(0xFF00E5FF)
+                    )
+                ),
+                radius = radius * 0.98f,
+                center = center,
+                style = Stroke(width = radius * 0.12f)
+            )
+
+            
+            drawCircle(
+                color = Color(0x3300E5FF),
+                radius = radius * 0.55f,
+                center = center,
+                style = Stroke(width = radius * 0.04f)
+            )
+
+            
+            val mountainPath = Path().apply {
+                moveTo(center.x - radius * 0.55f, center.y + radius * 0.25f)
+                lineTo(center.x - radius * 0.15f, center.y - radius * 0.35f)
+                lineTo(center.x + radius * 0.05f, center.y - radius * 0.05f)
+                lineTo(center.x + radius * 0.3f, center.y - radius * 0.25f)
+                lineTo(center.x + radius * 0.5f, center.y + radius * 0.22f)
+                close()
+            }
+
+            drawPath(
+                path = mountainPath,
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFFB2EBF2),
+                        Color(0xFF4DD0E1)
+                    )
+                ),
+                style = Fill
+            )
+
+            
+            val pathLine = Path().apply {
+                moveTo(center.x - radius * 0.45f, center.y + radius * 0.18f)
+                cubicTo(
+                    center.x - radius * 0.2f, center.y + radius * 0.05f,
+                    center.x + radius * 0.1f, center.y + radius * 0.05f,
+                    center.x + radius * 0.35f, center.y - radius * 0.08f
+                )
+            }
+
+            drawPath(
+                path = pathLine,
+                color = Color(0xFF00E5FF),
+                style = Stroke(width = radius * 0.045f)
+            )
+
+            
+            drawCircle(
+                color = Color(0xFFFFF59D),
+                radius = radius * 0.07f,
+                center = Offset(
+                    center.x + radius * 0.25f,
+                    center.y - radius * 0.12f
+                )
             )
         }
     }

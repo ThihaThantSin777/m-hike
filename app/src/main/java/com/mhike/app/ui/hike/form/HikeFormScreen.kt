@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -59,7 +60,6 @@ fun HikeFormScreen(
     val darkSurface = Color(0xFF1A2F42)
     val accentBlue = Color(0xFF29B6F6)
     val lightBlue = Color(0xFF81D4FA)
-    val cardBg = Color(0xFF2A4A5E)
 
     LaunchedEffect(hikeId) {
         if (hikeId != null) vm.loadForEdit(hikeId)
@@ -142,6 +142,7 @@ fun HikeFormScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
+
                 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -198,7 +199,6 @@ fun HikeFormScreen(
                     colors = CardDefaults.cardColors(containerColor = darkSurface)
                 ) {
                     Box {
-                        
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -263,11 +263,12 @@ fun HikeFormScreen(
                                     )
                             )
 
+                            
                             DarkFormTextField(
                                 value = vm.draft.name,
                                 onValueChange = { value -> vm.update { it.copy(name = value) } },
                                 label = "Hike Name *",
-                                placeholder = "e.g., Mount Everest Summit",
+                                placeholder = "e.g., Blue Mountains Sunrise Trail",
                                 leadingIcon = Icons.Default.Hiking,
                                 keyboardOptions = KeyboardOptions(
                                     capitalization = KeyboardCapitalization.Words,
@@ -275,11 +276,12 @@ fun HikeFormScreen(
                                 )
                             )
 
+                            
                             DarkFormTextField(
                                 value = vm.draft.location,
                                 onValueChange = { value -> vm.update { it.copy(location = value) } },
                                 label = "Location *",
-                                placeholder = "e.g., Nepal, Himalayas",
+                                placeholder = "e.g., New South Wales, Australia",
                                 leadingIcon = Icons.Default.LocationOn,
                                 keyboardOptions = KeyboardOptions(
                                     capitalization = KeyboardCapitalization.Words,
@@ -287,48 +289,66 @@ fun HikeFormScreen(
                                 )
                             )
 
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Text(
+                                    text = "Schedule & Distance",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = lightBlue
+                                )
+
                                 Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(
-                                        Icons.Default.DateRange,
-                                        null,
-                                        tint = lightBlue,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Text(
-                                        text = "Hike Date *",
-                                        style = MaterialTheme.typography.labelLarge,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = lightBlue
+                                    
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.DateRange,
+                                                null,
+                                                tint = lightBlue,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Text(
+                                                text = "Hike Date *",
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = lightBlue
+                                            )
+                                        }
+                                        Spacer(Modifier.height(6.dp))
+                                        DarkDateButton(
+                                            dateText = vm.draft.date?.toString() ?: "Select date",
+                                            hasDate = vm.draft.date != null,
+                                            onClick = { showDatePicker = true }
+                                        )
+                                    }
+
+                                    
+                                    DarkFormTextField(
+
+                                        value = vm.draft.lengthKm,
+                                        onValueChange = { value ->
+                                            if (value.isEmpty() || value.matches(Regex("^\\d*\\.?\\d*$"))) {
+                                                vm.update { it.copy(lengthKm = value) }
+                                            }
+                                        },
+                                        label = "Distance *",
+                                        placeholder = "e.g., 6.7",
+                                        leadingIcon = Icons.Default.Straighten,
+                                        modifier = Modifier.weight(1.1f).padding(top = 13.dp),
+                                        keyboardOptions = KeyboardOptions(
+                                            keyboardType = KeyboardType.Decimal,
+                                            imeAction = ImeAction.Next
+                                        )
                                     )
                                 }
-
-                                DarkDateButton(
-                                    dateText = vm.draft.date?.toString() ?: "Select date",
-                                    hasDate = vm.draft.date != null,
-                                    onClick = { showDatePicker = true }
-                                )
                             }
-
-                            DarkFormTextField(
-                                value = vm.draft.lengthKm,
-                                onValueChange = { value ->
-                                    if (value.isEmpty() || value.matches(Regex("^\\d*\\.?\\d*$"))) {
-                                        vm.update { it.copy(lengthKm = value) }
-                                    }
-                                },
-                                label = "Distance (km) *",
-                                placeholder = "e.g., 5.5",
-                                leadingIcon = Icons.Default.Straighten,
-                                trailingText = "km",
-                                keyboardOptions = KeyboardOptions(
-                                    keyboardType = KeyboardType.Decimal,
-                                    imeAction = ImeAction.Next
-                                )
-                            )
 
                             
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -354,11 +374,21 @@ fun HikeFormScreen(
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     listOf("Easy", "Moderate", "Hard").forEach { level ->
-                                        val selected = vm.draft.difficulty.equals(level, ignoreCase = true)
+                                        val selected =
+                                            vm.draft.difficulty.equals(level, ignoreCase = true)
                                         val (selBg, selFg) = when (level) {
-                                            "Easy" -> Color(0xFF66BB6A).copy(alpha = 0.3f) to Color(0xFF81C784)
-                                            "Moderate" -> Color(0xFFFFB74D).copy(alpha = 0.3f) to Color(0xFFFFD54F)
-                                            "Hard" -> Color(0xFFEF5350).copy(alpha = 0.3f) to Color(0xFFE57373)
+                                            "Easy" -> Color(0xFF66BB6A).copy(alpha = 0.3f) to Color(
+                                                0xFF81C784
+                                            )
+
+                                            "Moderate" -> Color(0xFFFFB74D).copy(alpha = 0.3f) to Color(
+                                                0xFFFFD54F
+                                            )
+
+                                            "Hard" -> Color(0xFFEF5350).copy(alpha = 0.3f) to Color(
+                                                0xFFE57373
+                                            )
+
                                             else -> Color.White.copy(alpha = 0.1f) to Color.White
                                         }
                                         DarkFilterChip(
@@ -623,34 +653,35 @@ fun HikeFormScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
         }
-    }
 
-    
-    if (showDatePicker) {
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            onDateSelected = { selectedDate ->
-                vm.update { it.copy(date = LocalDate.parse(selectedDate)) }
-                showDatePicker = false
-            },
-            initialDate = vm.draft.date?.toString() ?: ""
-        )
-    }
+        
+        if (showDatePicker) {
+            DatePickerDialog(
+                onDismissRequest = { showDatePicker = false },
+                onDateSelected = { selectedDate ->
+                    vm.update { it.copy(date = LocalDate.parse(selectedDate)) }
+                    showDatePicker = false
+                },
+                initialDate = vm.draft.date?.toString() ?: ""
+            )
+        }
 
-    
-    if (showReviewDialog) {
-        HikeReviewDialog(
-            draft = vm.draft,
-            isEditMode = isEditMode,
-            onDismiss = { showReviewDialog = false },
-            onEdit = { showReviewDialog = false },
-            onConfirm = {
-                vm.saveHike()
-                onHikeSaved()
-            }
-        )
+        
+        if (showReviewDialog) {
+            HikeReviewDialog(
+                draft = vm.draft,
+                isEditMode = isEditMode,
+                onDismiss = { showReviewDialog = false },
+                onEdit = { showReviewDialog = false },
+                onConfirm = {
+                    vm.saveHike()
+                    onHikeSaved()
+                }
+            )
+        }
     }
 }
+
 
 @Composable
 private fun DarkFormTextField(
@@ -704,6 +735,7 @@ private fun DarkFormTextField(
         shape = RoundedCornerShape(14.dp),
         minLines = minLines,
         maxLines = maxLines,
+        singleLine = maxLines == 1,
         keyboardOptions = keyboardOptions,
         colors = OutlinedTextFieldDefaults.colors(
             focusedTextColor = Color.White,
@@ -751,20 +783,20 @@ private fun DarkDateButton(
             style = MaterialTheme.typography.bodyLarge,
             color = if (hasDate) Color.White else Color.White.copy(alpha = 0.5f),
             modifier = Modifier.weight(1f),
-            textAlign = androidx.compose.ui.text.style.TextAlign.Start
+            textAlign = TextAlign.Start
         )
     }
 }
 
 @Composable
 private fun DarkFilterChip(
+    modifier: Modifier = Modifier,
     selected: Boolean,
     onClick: () -> Unit,
     label: String,
     icon: ImageVector? = null,
     selectedBg: Color,
     selectedFg: Color,
-    modifier: Modifier = Modifier
 ) {
     val darkOverlay = Color(0xFF0D1F2D)
 
@@ -846,10 +878,9 @@ fun HikeReviewDialog(
     onEdit: () -> Unit,
     onConfirm: () -> Unit
 ) {
-    val darkBg = Color(0xFF0A1929)
-    val darkSurface = Color(0xFF1A2F42)
     val accentBlue = Color(0xFF29B6F6)
     val lightBlue = Color(0xFF81D4FA)
+    val darkSurface = Color(0xFF1A2F42)
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -1067,9 +1098,18 @@ fun HikeReviewDialog(
                                     )
                                 }
                                 val (chipBg, chipFg) = when (draft.difficulty.lowercase()) {
-                                    "easy" -> Color(0xFF66BB6A).copy(alpha = 0.3f) to Color(0xFF81C784)
-                                    "moderate" -> Color(0xFFFFB74D).copy(alpha = 0.3f) to Color(0xFFFFD54F)
-                                    "hard" -> Color(0xFFEF5350).copy(alpha = 0.3f) to Color(0xFFE57373)
+                                    "easy" -> Color(0xFF66BB6A).copy(alpha = 0.3f) to Color(
+                                        0xFF81C784
+                                    )
+
+                                    "moderate" -> Color(0xFFFFB74D).copy(alpha = 0.3f) to Color(
+                                        0xFFFFD54F
+                                    )
+
+                                    "hard" -> Color(0xFFEF5350).copy(alpha = 0.3f) to Color(
+                                        0xFFE57373
+                                    )
+
                                     else -> Color.White.copy(alpha = 0.1f) to Color.White
                                 }
                                 Surface(
@@ -1081,7 +1121,10 @@ fun HikeReviewDialog(
                                         style = MaterialTheme.typography.bodyLarge,
                                         fontWeight = FontWeight.Bold,
                                         color = chipFg,
-                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                        modifier = Modifier.padding(
+                                            horizontal = 16.dp,
+                                            vertical = 8.dp
+                                        )
                                     )
                                 }
                             }
@@ -1130,7 +1173,9 @@ fun HikeReviewDialog(
                                     text = if (draft.parking == true) "Yes" else "No",
                                     style = MaterialTheme.typography.bodyLarge,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (draft.parking == true) Color(0xFF81C784) else Color(0xFFE57373)
+                                    color = if (draft.parking == true) Color(0xFF81C784) else Color(
+                                        0xFFE57373
+                                    )
                                 )
                             }
                         }
@@ -1187,7 +1232,6 @@ fun HikeReviewDialog(
                     }
                 }
 
-                
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1366,7 +1410,8 @@ fun DatePickerDialog(
             TextButton(
                 onClick = {
                     datePickerState.selectedDateMillis?.let { millis ->
-                        val calendar = java.util.Calendar.getInstance().apply { timeInMillis = millis }
+                        val calendar =
+                            java.util.Calendar.getInstance().apply { timeInMillis = millis }
                         val y = calendar.get(java.util.Calendar.YEAR)
                         val m = calendar.get(java.util.Calendar.MONTH) + 1
                         val d = calendar.get(java.util.Calendar.DAY_OF_MONTH)

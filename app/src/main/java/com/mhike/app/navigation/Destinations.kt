@@ -24,6 +24,6 @@ sealed class Destinations(val route: String) {
         fun routeEdit(hikeId: Long, obsId: Long) = "observation_form/$hikeId?obsId=$obsId"
     }
 
-    // Search
+    
     data object Search : Destinations("search")
 }

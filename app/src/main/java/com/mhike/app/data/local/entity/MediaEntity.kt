@@ -22,7 +22,7 @@ import kotlin.time.ExperimentalTime
 data class MediaEntity @OptIn(ExperimentalTime::class) constructor(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val hikeId: Long,
-    val uri: String,                   // content://… or file:// as string
+    val uri: String,                   
     val mimeType: String? = null,
     val addedAt: Instant = Instant.fromEpochMilliseconds(System.currentTimeMillis())
 )

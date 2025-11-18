@@ -55,7 +55,7 @@ class SearchViewModel @Inject constructor(
             .combine(MutableStateFlow(Unit)) { f, _ -> f }
             .flatMapLatest { f -> searchHikes(toParams(f)) }
             .stateIn(
-                scope = viewModelScope,   // ✅ now resolves correctly
+                scope = viewModelScope,   
                 started = SharingStarted.WhileSubscribed(5_000),
                 initialValue = emptyList()
             )

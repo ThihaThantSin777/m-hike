@@ -22,7 +22,7 @@ import kotlin.time.ExperimentalTime
 data class ObservationEntity @OptIn(ExperimentalTime::class) constructor(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val hikeId: Long,
-    val text: String,                                  // required
-    val at: Instant = Instant.fromEpochMilliseconds(System.currentTimeMillis()), // default now
-    val comment: String? = null                        // optional
+    val text: String,                                  
+    val at: Instant = Instant.fromEpochMilliseconds(System.currentTimeMillis()), 
+    val comment: String? = null                        
 )

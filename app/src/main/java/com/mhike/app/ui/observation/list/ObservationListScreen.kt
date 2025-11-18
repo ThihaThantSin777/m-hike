@@ -6,11 +6,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -29,19 +25,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.mhike.app.domain.model.Observation
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
+import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.time.ExperimentalTime
 
@@ -55,11 +54,11 @@ fun ObservationListScreen(
     onBack: () -> Unit,
     vm: ObservationListViewModel = hiltViewModel()
 ) {
-
-    val darkBg = Color(0xFF0A1929)
-    val darkSurface = Color(0xFF1A2F42)
-    val accentBlue = Color(0xFF29B6F6)
-    val lightBlue = Color(0xFF81D4FA)
+    
+    val deepNavy = Color(0xFF0A1628)
+    val richBlue = Color(0xFF1A2942)
+    val accentCyan = Color(0xFF00D9FF)
+    val accentTeal = Color(0xFF00FFD1)
 
     val observations by remember(hikeId) { vm.state(hikeId) }.collectAsState()
     var observationToDelete by remember { mutableStateOf<Observation?>(null) }
@@ -69,388 +68,578 @@ fun ObservationListScreen(
             .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(darkBg, Color(0xFF1A2F42), Color(0xFF2A4A5E))
+                    colors = listOf(
+                        deepNavy,
+                        richBlue,
+                        Color(0xFF243B5E)
+                    )
                 )
             )
     ) {
-
-        ObservationBackgroundStars()
+        
+        EnhancedObservationBackground()
 
         Scaffold(
             containerColor = Color.Transparent,
             topBar = {
-                CenterAlignedTopAppBar(
-                    title = {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = hikeName,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = Color.White
-                            )
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = "${observations.size} observation${if (observations.size != 1) "s" else ""}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.White.copy(alpha = 0.75f)
-                                )
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .width(60.dp)
-                                    .height(2.dp)
-                                    .background(
-                                        brush = Brush.horizontalGradient(
-                                            listOf(Color(0xFF4FC3F7), accentBlue, Color(0xFF03A9F4))
-                                        )
-                                    )
-                            )
-                        }
-                    },
-                    navigationIcon = {
-                        IconButton(
-                            onClick = onBack,
-                            modifier = Modifier
-                                .clip(CircleShape)
-                                .background(accentBlue.copy(alpha = 0.15f))
-                        ) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
-                                tint = lightBlue
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                        containerColor = Color.Transparent,
-                        titleContentColor = Color.White,
-                        navigationIconContentColor = Color.White
-                    )
+                ModernObservationTopBar(
+                    hikeName = hikeName,
+                    observationCount = observations.size,
+                    onBack = onBack
                 )
             },
             floatingActionButton = {
-                if (observations.isNotEmpty()) {
-                    ExtendedFloatingActionButton(
-                        onClick = onAdd,
-                        containerColor = accentBlue,
-                        contentColor = Color.White,
-                        elevation = FloatingActionButtonDefaults.elevation(
-                            defaultElevation = 6.dp, pressedElevation = 12.dp
-                        ),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Add Observation", fontWeight = FontWeight.Bold)
-                    }
-                }
+                AnimatedObservationFAB(
+                    visible = observations.isNotEmpty(),
+                    onClick = onAdd
+                )
             }
-        ) { pv ->
+        ) { paddingValues ->
             if (observations.isEmpty()) {
-
-                Box(
+                EmptyObservationState(
+                    onAdd = onAdd,
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(pv)
-                        .padding(24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(20.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier.size(120.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(120.dp)
-                                    .blur(22.dp)
-                                    .clip(CircleShape)
-                                    .background(accentBlue.copy(alpha = 0.25f))
-                            )
-                            Icon(
-                                imageVector = Icons.Default.Visibility,
-                                contentDescription = null,
-                                modifier = Modifier.size(60.dp),
-                                tint = lightBlue.copy(alpha = 0.75f)
-                            )
-                        }
-                        Text(
-                            text = "No Observations Yet",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Black,
-                            color = Color.White
-                        )
-                        Text(
-                            text = "Start documenting your hike discoveries.\nTap the button below to add your first observation!",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.White.copy(alpha = 0.75f)
-                        )
-                        Button(
-                            onClick = onAdd,
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = accentBlue),
-                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = null)
-                            Spacer(Modifier.width(8.dp))
-                            Text("Add First Observation", fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
+                        .padding(paddingValues)
+                )
             } else {
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(pv)
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(vertical = 16.dp)
+                        .padding(paddingValues)
+                        .padding(horizontal = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(vertical = 24.dp)
                 ) {
                     items(items = observations, key = { it.id }) { observation ->
-                        ObservationCardDark(
+                        ModernObservationCard(
                             observation = observation,
                             onEdit = { onEdit(observation.id) },
-                            onDelete = { observationToDelete = observation },
-                            darkSurface = darkSurface,
-                            accentBlue = accentBlue,
-                            lightBlue = lightBlue
+                            onDelete = { observationToDelete = observation }
                         )
                     }
-                    item { Spacer(Modifier.height(96.dp)) }
+                    item { Spacer(Modifier.height(100.dp)) }
                 }
             }
         }
 
-
+        
         if (observationToDelete != null) {
-            AlertDialog(
-                onDismissRequest = { observationToDelete = null },
-                icon = {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = null,
-                        tint = Color(0xFFE57373)
-                    )
-                },
-                containerColor = darkSurface,
-                title = {
-                    Text("Delete Observation?", fontWeight = FontWeight.Bold, color = Color.White)
-                },
-                text = {
-                    Text(
-                        "Are you sure you want to delete this observation? This action cannot be undone.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.85f)
-                    )
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            observationToDelete?.let { vm.onDelete(it) }
-                            observationToDelete = null
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF5350)),
-                        shape = RoundedCornerShape(12.dp)
-                    ) { Text("Delete", fontWeight = FontWeight.Bold) }
-                },
-                dismissButton = {
-                    TextButton(
-                        onClick = { observationToDelete = null },
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = Color.White.copy(alpha = 0.8f)
-                        )
-                    ) { Text("Cancel") }
-                },
-                shape = RoundedCornerShape(16.dp)
+            ModernDeleteDialog(
+                onDismiss = { observationToDelete = null },
+                onConfirm = {
+                    observationToDelete?.let { vm.onDelete(it) }
+                    observationToDelete = null
+                }
             )
         }
     }
 }
 
+/* ============================================================================
+   TOP BAR
+   ============================================================================ */
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ObservationCardDark(
+private fun ModernObservationTopBar(
+    hikeName: String,
+    observationCount: Int,
+    onBack: () -> Unit
+) {
+    CenterAlignedTopAppBar(
+        title = {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Visibility,
+                        contentDescription = null,
+                        tint = Color(0xFF00D9FF),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = hikeName,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color.White.copy(alpha = 0.08f)
+                ) {
+                    Text(
+                        text = "$observationCount ${if (observationCount == 1) "observation" else "observations"}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color(0xFF00FFD1),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        letterSpacing = 1.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        },
+        navigationIcon = {
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF00D9FF).copy(alpha = 0.15f))
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color(0xFF00D9FF),
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+        },
+        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+            containerColor = Color.Transparent
+        )
+    )
+}
+
+/* ============================================================================
+   FAB
+   ============================================================================ */
+
+@Composable
+private fun AnimatedObservationFAB(
+    visible: Boolean,
+    onClick: () -> Unit
+) {
+    val scale by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "fab_scale"
+    )
+
+    val rotation by rememberInfiniteTransition(label = "fab_rotation").animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(20000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "rotation"
+    )
+
+    if (visible) {
+        Box(modifier = Modifier.scale(scale)) {
+            
+            Box(
+                modifier = Modifier
+                    .size(90.dp)
+                    .rotate(rotation)
+                    .blur(20.dp)
+                    .align(Alignment.Center)
+            ) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                Color(0xFF00D9FF).copy(alpha = 0.4f),
+                                Color(0xFF00FFD1).copy(alpha = 0.2f),
+                                Color.Transparent
+                            )
+                        )
+                    )
+                }
+            }
+
+            FloatingActionButton(
+                onClick = onClick,
+                modifier = Modifier.size(64.dp),
+                containerColor = Color.Transparent,
+                elevation = FloatingActionButtonDefaults.elevation(
+                    defaultElevation = 0.dp,
+                    pressedElevation = 0.dp
+                )
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    Color(0xFF00D9FF),
+                                    Color(0xFF00FFD1)
+                                )
+                            ),
+                            shape = CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "Add Observation",
+                        modifier = Modifier.size(28.dp),
+                        tint = Color(0xFF0A1628)
+                    )
+                }
+            }
+        }
+    }
+}
+
+/* ============================================================================
+   EMPTY STATE
+   ============================================================================ */
+
+@Composable
+private fun EmptyObservationState(
+    onAdd: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier.padding(32.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(28.dp)
+        ) {
+            
+            Box(
+                modifier = Modifier.size(140.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(180.dp)
+                        .blur(40.dp)
+                ) {
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    Color(0xFF00D9FF).copy(alpha = 0.4f),
+                                    Color.Transparent
+                                )
+                            )
+                        )
+                    }
+                }
+
+                Surface(
+                    shape = CircleShape,
+                    color = Color(0xFF00D9FF).copy(alpha = 0.2f),
+                    modifier = Modifier.size(110.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Visibility,
+                            contentDescription = null,
+                            modifier = Modifier.size(54.dp),
+                            tint = Color(0xFF00D9FF)
+                        )
+                    }
+                }
+            }
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "No Observations Yet",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    letterSpacing = 0.5.sp
+                )
+
+                Text(
+                    text = "Start documenting your hike discoveries.\nCapture interesting moments and details along the way.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.7f),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    lineHeight = 22.sp
+                )
+            }
+
+            Button(
+                onClick = onAdd,
+                modifier = Modifier
+                    .height(56.dp)
+                    .widthIn(min = 220.dp),
+                shape = RoundedCornerShape(28.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent
+                ),
+                contentPadding = PaddingValues(0.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color(0xFF00D9FF),
+                                    Color(0xFF00FFD1)
+                                )
+                            )
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(22.dp),
+                            tint = Color(0xFF0A1628)
+                        )
+                        Text(
+                            "Add First Observation",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = Color(0xFF0A1628)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* ============================================================================
+   OBSERVATION CARD
+   ============================================================================ */
+
+@Composable
+private fun ModernObservationCard(
     observation: Observation,
     onEdit: () -> Unit,
-    onDelete: () -> Unit,
-    darkSurface: Color,
-    accentBlue: Color,
-    lightBlue: Color
+    onDelete: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
+
+    val cardElevation by animateDpAsState(
+        targetValue = if (expanded) 12.dp else 6.dp,
+        label = "card_elevation"
+    )
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { expanded = !expanded },
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-        colors = CardDefaults.cardColors(containerColor = darkSurface)
+        shape = RoundedCornerShape(24.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = cardElevation),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF15223A).copy(alpha = 0.95f)
+        )
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-
+            
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(6.dp)
                     .background(
                         brush = Brush.horizontalGradient(
                             colors = listOf(
-                                Color(0xFF4FC3F7).copy(alpha = 0.8f),
-                                accentBlue.copy(alpha = 0.8f),
-                                Color(0xFF03A9F4).copy(alpha = 0.8f)
+                                Color(0xFF00D9FF).copy(alpha = 0.15f),
+                                Color(0xFF00FFD1).copy(alpha = 0.10f)
                             )
                         )
                     )
-            )
-
-            Column(modifier = Modifier.padding(16.dp)) {
-
+            ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.weight(1f)
                     ) {
                         Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = accentBlue.copy(alpha = 0.2f),
-                            modifier = Modifier.size(40.dp)
+                            shape = CircleShape,
+                            color = Color(0xFF00D9FF).copy(alpha = 0.25f),
+                            modifier = Modifier.size(48.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Default.RemoveRedEye,
                                     contentDescription = null,
-                                    tint = lightBlue,
-                                    modifier = Modifier.size(20.dp)
+                                    tint = Color(0xFF00D9FF),
+                                    modifier = Modifier.size(24.dp)
                                 )
                             }
                         }
-                        Column(modifier = Modifier.weight(1f)) {
+
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
                             Text(
                                 text = formatDateTime(observation.at),
-                                style = MaterialTheme.typography.labelMedium,
+                                style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = lightBlue
+                                color = Color.White,
+                                fontSize = 14.sp
                             )
                             Text(
                                 text = formatTime(observation.at),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = Color.White.copy(alpha = 0.7f)
+                                color = Color.White.copy(alpha = 0.7f),
+                                fontSize = 12.sp
                             )
                         }
                     }
-                    Icon(
-                        imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = if (expanded) "Collapse" else "Expand",
-                        tint = Color.White.copy(alpha = 0.7f)
-                    )
+
+                    
+                    Surface(
+                        shape = CircleShape,
+                        color = Color.White.copy(alpha = 0.08f),
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                contentDescription = if (expanded) "Collapse" else "Expand",
+                                tint = Color(0xFF00FFD1),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
                 }
+            }
 
-                Spacer(Modifier.height(12.dp))
-
-
+            
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                
                 Text(
                     text = observation.text,
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Medium,
                     color = Color.White,
                     maxLines = if (expanded) Int.MAX_VALUE else 3,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 24.sp
                 )
 
-
+                
                 if (!observation.comment.isNullOrEmpty()) {
-                    Spacer(Modifier.height(12.dp))
                     Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFF0D1F2D).copy(alpha = 0.6f),
-                        border = ButtonDefaults.outlinedButtonBorder.copy(
-                            brush = SolidColor(lightBlue.copy(alpha = 0.3f))
-                        )
+                        shape = RoundedCornerShape(16.dp),
+                        color = Color(0xFF0D1B2E).copy(alpha = 0.6f)
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(12.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                                .padding(14.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.Top
                         ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Comment,
-                                contentDescription = null,
-                                tint = Color.White.copy(alpha = 0.7f),
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Text(
-                                text = observation.comment,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color.White.copy(alpha = 0.85f),
-                                maxLines = if (expanded) Int.MAX_VALUE else 2,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f)
-                            )
+                            Surface(
+                                shape = CircleShape,
+                                color = Color(0xFF00FFD1).copy(alpha = 0.2f),
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.Comment,
+                                        contentDescription = null,
+                                        tint = Color(0xFF00FFD1),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "Additional Notes",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color(0xFF00FFD1).copy(alpha = 0.8f),
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 11.sp
+                                )
+                                Text(
+                                    text = observation.comment,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.White.copy(alpha = 0.85f),
+                                    maxLines = if (expanded) Int.MAX_VALUE else 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                    lineHeight = 20.sp
+                                )
+                            }
                         }
                     }
                 }
 
-
+                
                 AnimatedVisibility(
                     visible = expanded,
                     enter = fadeIn() + expandVertically(),
                     exit = fadeOut() + shrinkVertically()
                 ) {
                     Column {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(1.dp)
+                                .background(
+                                    brush = Brush.horizontalGradient(
+                                        colors = listOf(
+                                            Color.Transparent,
+                                            Color(0xFF00D9FF).copy(alpha = 0.3f),
+                                            Color(0xFF00FFD1).copy(alpha = 0.3f),
+                                            Color.Transparent
+                                        )
+                                    )
+                                )
+                        )
+
                         Spacer(Modifier.height(16.dp))
-                        HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
-                        Spacer(Modifier.height(8.dp))
+
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            OutlinedButton(
+                            ActionButton(
+                                icon = Icons.Default.Edit,
+                                label = "Edit",
                                 onClick = onEdit,
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = lightBlue),
-                                border = ButtonDefaults.outlinedButtonBorder.copy(
-                                    brush = SolidColor(lightBlue.copy(alpha = 0.6f))
-                                )
-                            ) {
-                                Icon(
-                                    Icons.Default.Edit,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(Modifier.width(6.dp))
-                                Text("Edit", fontWeight = FontWeight.SemiBold)
-                            }
-                            OutlinedButton(
+                                color = Color(0xFF00D9FF),
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            ActionButton(
+                                icon = Icons.Default.Delete,
+                                label = "Delete",
                                 onClick = onDelete,
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = Color(
-                                        0xFFE57373
-                                    )
-                                ),
-                                border = ButtonDefaults.outlinedButtonBorder.copy(
-                                    brush = SolidColor(Color(0xFFEF5350).copy(alpha = 0.6f))
-                                )
-                            ) {
-                                Icon(
-                                    Icons.Default.Delete,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(Modifier.width(6.dp))
-                                Text("Delete", fontWeight = FontWeight.SemiBold)
-                            }
+                                color = Color(0xFFEF5350),
+                                modifier = Modifier.weight(1f)
+                            )
                         }
                     }
                 }
@@ -459,13 +648,123 @@ private fun ObservationCardDark(
     }
 }
 
-/* ---------- Formatters (same style as form) ---------- */
+@Composable
+private fun ActionButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(14.dp),
+        color = color.copy(alpha = 0.15f)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = color
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = label,
+                fontWeight = FontWeight.SemiBold,
+                color = color,
+                style = MaterialTheme.typography.labelLarge
+            )
+        }
+    }
+}
+
+/* ============================================================================
+   DELETE DIALOG
+   ============================================================================ */
+
+@Composable
+private fun ModernDeleteDialog(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Color(0xFF1A2942),
+        shape = RoundedCornerShape(24.dp),
+        icon = {
+            Surface(
+                shape = CircleShape,
+                color = Color(0xFFEF5350).copy(alpha = 0.2f),
+                modifier = Modifier.size(60.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = null,
+                        tint = Color(0xFFEF5350),
+                        modifier = Modifier.size(30.dp)
+                    )
+                }
+            }
+        },
+        title = {
+            Text(
+                text = "Delete Observation?",
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                fontSize = 22.sp
+            )
+        },
+        text = {
+            Text(
+                text = "Are you sure you want to delete this observation? This action cannot be undone.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color.White.copy(alpha = 0.8f),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                lineHeight = 22.sp
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                modifier = Modifier.height(48.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFEF5350)
+                ),
+                shape = RoundedCornerShape(24.dp)
+            ) {
+                Text("Delete", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = Color.White.copy(alpha = 0.7f)
+                )
+            ) {
+                Text("Cancel", fontWeight = FontWeight.Medium)
+            }
+        }
+    )
+}
+
+/* ============================================================================
+   FORMATTERS
+   ============================================================================ */
 
 @OptIn(ExperimentalTime::class)
 private fun formatDateTime(instant: Instant): String {
     val ldt = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-    val months =
-        listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+    val months = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
     return "${months[ldt.month.number - 1]} ${ldt.day}, ${ldt.year}"
 }
 
@@ -484,36 +783,95 @@ private fun formatTime(instant: Instant): String {
     return String.format("%d:%02d %s", displayHour, minute, amPm)
 }
 
+/* ============================================================================
+   BACKGROUND ANIMATIONS
+   ============================================================================ */
 
 @Composable
-private fun ObservationBackgroundStars() {
-    val infiniteTransition = rememberInfiniteTransition(label = "stars")
-    val shimmer by infiniteTransition.animateFloat(
+private fun EnhancedObservationBackground() {
+    Box(modifier = Modifier.fillMaxSize()) {
+        FloatingObservationParticles()
+        AnimatedObservationOrbs()
+    }
+}
+
+@Composable
+private fun FloatingObservationParticles() {
+    val infiniteTransition = rememberInfiniteTransition(label = "particles")
+
+    val offset1 by infiniteTransition.animateFloat(
         initialValue = 0f,
-        targetValue = 400f,
-        animationSpec = infiniteRepeatable(animation = tween(2000, easing = LinearEasing)),
-        label = "shimmer"
+        targetValue = 1000f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(15000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "particle1"
     )
 
     Canvas(modifier = Modifier.fillMaxSize()) {
         val width = size.width
         val height = size.height
-        val stars = listOf(
-            Offset(width * 0.15f, height * 0.2f) to 3f,
-            Offset(width * 0.85f, height * 0.15f) to 2.5f,
-            Offset(width * 0.25f, height * 0.35f) to 2f,
-            Offset(width * 0.75f, height * 0.4f) to 3.5f,
-            Offset(width * 0.9f, height * 0.6f) to 2f,
-            Offset(width * 0.1f, height * 0.7f) to 2.5f
-        )
 
-        stars.forEach { (pos, base) ->
-            val twinkle = sin(shimmer / 100f + pos.x + pos.y) * 0.5f + 0.5f
+        for (i in 0..12) {
+            val baseX = width * (i / 12f)
+            val baseY = (offset1 + i * 80) % height
+            val sineOffset = sin((offset1 + i * 50) / 100f) * 30f
+
             drawCircle(
-                color = Color.White.copy(alpha = (0.3f + twinkle * 0.4f).toFloat()),
-                radius = (base * (0.8f + twinkle * 0.4f)).toFloat(),
-                center = pos
+                color = Color(0xFF00D9FF).copy(alpha = 0.1f),
+                radius = 2f + (i % 3),
+                center = Offset(baseX + sineOffset, baseY)
             )
         }
+    }
+}
+
+@Composable
+private fun AnimatedObservationOrbs() {
+    val infiniteTransition = rememberInfiniteTransition(label = "orbs")
+
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(30000, easing = LinearEasing)
+        ),
+        label = "orb_rotation"
+    )
+
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val width = size.width
+        val height = size.height
+
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color(0xFF00D9FF).copy(alpha = 0.08f),
+                    Color.Transparent
+                ),
+                center = Offset(width * 0.85f, height * 0.15f)
+            ),
+            radius = 200f,
+            center = Offset(
+                width * 0.85f + cos(Math.toRadians(rotation.toDouble())).toFloat() * 30f,
+                height * 0.15f + sin(Math.toRadians(rotation.toDouble())).toFloat() * 30f
+            )
+        )
+
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color(0xFF00FFD1).copy(alpha = 0.06f),
+                    Color.Transparent
+                ),
+                center = Offset(width * 0.15f, height * 0.75f)
+            ),
+            radius = 150f,
+            center = Offset(
+                width * 0.15f + sin(Math.toRadians(rotation.toDouble())).toFloat() * 25f,
+                height * 0.75f + cos(Math.toRadians(rotation.toDouble())).toFloat() * 25f
+            )
+        )
     }
 }

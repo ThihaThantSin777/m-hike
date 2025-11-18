@@ -27,10 +27,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -47,12 +49,10 @@ fun SearchScreen(
     val form by vm.form.collectAsState()
     val results by vm.results.collectAsState()
 
-    
     val darkBg = Color(0xFF0A1929)
     val darkSurface = Color(0xFF1A2F42)
     val accentBlue = Color(0xFF29B6F6)
     val lightBlue = Color(0xFF81D4FA)
-    val cardBg = Color(0xFF2A4A5E)
 
     Box(
         modifier = Modifier
@@ -75,28 +75,20 @@ fun SearchScreen(
                 CenterAlignedTopAppBar(
                     title = {
                         Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
                             Text(
-                                "Search & Filter",
+                                "Search Results",
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = 22.sp,
                                 letterSpacing = 0.5.sp,
                                 color = Color.White
                             )
-                            Box(
-                                modifier = Modifier
-                                    .width(60.dp)
-                                    .height(2.dp)
-                                    .background(
-                                        brush = Brush.horizontalGradient(
-                                            colors = listOf(
-                                                Color(0xFF4FC3F7),
-                                                Color(0xFF29B6F6),
-                                                Color(0xFF03A9F4)
-                                            )
-                                        )
-                                    )
+                            Text(
+                                text = "Tap a hike to view details",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = lightBlue.copy(alpha = 0.8f)
                             )
                         }
                     },
@@ -105,7 +97,7 @@ fun SearchScreen(
                             onClick = onBack,
                             modifier = Modifier
                                 .clip(CircleShape)
-                                .background(accentBlue.copy(alpha = 0.15f))
+                                .background(accentBlue.copy(alpha = 0.18f))
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -132,37 +124,26 @@ fun SearchScreen(
             ) {
 
                 
+                
+                
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(22.dp),
                     elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-                    colors = CardDefaults.cardColors(containerColor = darkSurface)
+                    colors = CardDefaults.cardColors(containerColor = darkSurface.copy(alpha = 0.96f))
                 ) {
-                    Box {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
                         
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(6.dp)
-                                .background(
-                                    brush = Brush.horizontalGradient(
-                                        colors = listOf(
-                                            Color(0xFF4FC3F7).copy(alpha = 0.8f),
-                                            Color(0xFF29B6F6).copy(alpha = 0.8f),
-                                            Color(0xFF03A9F4).copy(alpha = 0.8f)
-                                        )
-                                    )
-                                )
-                        )
-
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 6.dp)
-                                .padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(18.dp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -170,8 +151,15 @@ fun SearchScreen(
                                 Box(
                                     modifier = Modifier
                                         .size(40.dp)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(accentBlue.copy(alpha = 0.2f)),
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(
+                                            brush = Brush.linearGradient(
+                                                colors = listOf(
+                                                    Color(0xFF243447),
+                                                    Color(0xFF1A2F42)
+                                                )
+                                            )
+                                        ),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
@@ -181,184 +169,222 @@ fun SearchScreen(
                                         modifier = Modifier.size(22.dp)
                                     )
                                 }
-                                Text(
-                                    text = "Search Filters",
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White,
-                                    fontSize = 20.sp
-                                )
+                                Column {
+                                    Text(
+                                        text = "Search Filters",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                    Text(
+                                        text = "Fine-tune your next adventure",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = lightBlue.copy(alpha = 0.8f)
+                                    )
+                                }
                             }
 
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(1.dp)
-                                    .background(
-                                        brush = Brush.horizontalGradient(
-                                            colors = listOf(
-                                                Color.Transparent,
-                                                lightBlue.copy(alpha = 0.3f),
-                                                Color.Transparent
-                                            )
+                            Icon(
+                                imageVector = Icons.Default.Tune,
+                                contentDescription = null,
+                                tint = lightBlue.copy(alpha = 0.7f),
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(1.dp)
+                                .background(
+                                    brush = Brush.horizontalGradient(
+                                        colors = listOf(
+                                            Color.Transparent,
+                                            lightBlue.copy(alpha = 0.3f),
+                                            Color.Transparent
                                         )
                                     )
-                            )
-
-                            
-                            DarkTextField(
-                                value = form.name,
-                                onValueChange = { vm.form.value = form.copy(name = it) },
-                                label = "Hike Name",
-                                placeholder = "Enter hike name...",
-                                leadingIcon = Icons.Default.Search,
-                                keyboardOptions = KeyboardOptions(
-                                    capitalization = KeyboardCapitalization.Words,
-                                    imeAction = ImeAction.Next
                                 )
+                        )
+
+                        
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Text(
+                                text = "Hike & Location",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = lightBlue,
+                                fontWeight = FontWeight.SemiBold
                             )
 
-                            
-                            DarkTextField(
-                                value = form.location,
-                                onValueChange = { vm.form.value = form.copy(location = it) },
-                                label = "Location",
-                                placeholder = "Enter location...",
-                                leadingIcon = Icons.Default.LocationOn,
-                                keyboardOptions = KeyboardOptions(
-                                    capitalization = KeyboardCapitalization.Words,
-                                    imeAction = ImeAction.Next
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                DarkTextField(
+                                    value = form.name,
+                                    onValueChange = { vm.form.value = form.copy(name = it) },
+                                    label = "Hike Name",
+                                    placeholder = "e.g. Skyline Trail",
+                                    leadingIcon = Icons.Default.Search,
+                                    modifier = Modifier.weight(1f),
+                                    keyboardOptions = KeyboardOptions(
+                                        capitalization = KeyboardCapitalization.Words,
+                                        imeAction = ImeAction.Next
+                                    )
                                 )
-                            )
 
-                            
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Straighten,
-                                        contentDescription = null,
-                                        tint = lightBlue,
-                                        modifier = Modifier.size(18.dp)
+                                DarkTextField(
+                                    value = form.location,
+                                    onValueChange = { vm.form.value = form.copy(location = it) },
+                                    label = "Location",
+                                    placeholder = "e.g. National Park",
+                                    leadingIcon = Icons.Default.LocationOn,
+                                    modifier = Modifier.weight(1f),
+                                    keyboardOptions = KeyboardOptions(
+                                        capitalization = KeyboardCapitalization.Words,
+                                        imeAction = ImeAction.Next
                                     )
-                                    Text(
-                                        text = "Distance Range (km)",
-                                        style = MaterialTheme.typography.labelLarge,
-                                        color = lightBlue,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                }
+                                )
+                            }
+                        }
 
-                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    DarkTextField(
-                                        value = form.minLen,
-                                        onValueChange = { newValue ->
-                                            if (newValue.isEmpty() || newValue.matches(Regex("^\\d*\\.?\\d*$"))) {
-                                                vm.form.value = form.copy(minLen = newValue)
-                                            }
-                                        },
-                                        label = "Min",
-                                        placeholder = "0",
-                                        leadingIcon = Icons.Default.Remove,
-                                        trailingText = "km",
-                                        modifier = Modifier.weight(1f),
-                                        keyboardOptions = KeyboardOptions(
-                                            keyboardType = KeyboardType.Decimal,
-                                            imeAction = ImeAction.Next
-                                        ),
-                                        isError = form.minLen.isNotEmpty() && !form.minLen.matches(Regex("^\\d*\\.?\\d*$"))
-                                    )
-
-                                    DarkTextField(
-                                        value = form.maxLen,
-                                        onValueChange = { newValue ->
-                                            if (newValue.isEmpty() || newValue.matches(Regex("^\\d*\\.?\\d*$"))) {
-                                                vm.form.value = form.copy(maxLen = newValue)
-                                            }
-                                        },
-                                        label = "Max",
-                                        placeholder = "100",
-                                        leadingIcon = Icons.Default.Add,
-                                        trailingText = "km",
-                                        modifier = Modifier.weight(1f),
-                                        keyboardOptions = KeyboardOptions(
-                                            keyboardType = KeyboardType.Decimal,
-                                            imeAction = ImeAction.Done
-                                        ),
-                                        isError = form.maxLen.isNotEmpty() && !form.maxLen.matches(Regex("^\\d*\\.?\\d*$"))
-                                    )
-                                }
+                        
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Straighten,
+                                    contentDescription = null,
+                                    tint = lightBlue,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Text(
+                                    text = "Distance (km)",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = lightBlue,
+                                    fontWeight = FontWeight.SemiBold
+                                )
                             }
 
-                            
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.DateRange,
-                                        contentDescription = null,
-                                        tint = lightBlue,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Text(
-                                        text = "Date Range",
-                                        style = MaterialTheme.typography.labelLarge,
-                                        color = lightBlue,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                DarkTextField(
+                                    value = form.minLen,
+                                    onValueChange = { newValue ->
+                                        if (newValue.isEmpty() || newValue.matches(Regex("^\\d*\\.?\\d*$"))) {
+                                            vm.form.value = form.copy(minLen = newValue)
+                                        }
+                                    },
+                                    label = "Min",
+                                    placeholder = "0",
+                                    leadingIcon = Icons.Default.Remove,
+                                    trailingText = "km",
+                                    modifier = Modifier.weight(1f),
+                                    keyboardOptions = KeyboardOptions(
+                                        keyboardType = KeyboardType.Decimal,
+                                        imeAction = ImeAction.Next
+                                    ),
+                                    isError = form.minLen.isNotEmpty() && !form.minLen.matches(Regex("^\\d*\\.?\\d*$"))
+                                )
 
-                                var showStartDatePicker by remember { mutableStateOf(false) }
-                                var showEndDatePicker by remember { mutableStateOf(false) }
+                                DarkTextField(
+                                    value = form.maxLen,
+                                    onValueChange = { newValue ->
+                                        if (newValue.isEmpty() || newValue.matches(Regex("^\\d*\\.?\\d*$"))) {
+                                            vm.form.value = form.copy(maxLen = newValue)
+                                        }
+                                    },
+                                    label = "Max",
+                                    placeholder = "100",
+                                    leadingIcon = Icons.Default.Add,
+                                    trailingText = "km",
+                                    modifier = Modifier.weight(1f),
+                                    keyboardOptions = KeyboardOptions(
+                                        keyboardType = KeyboardType.Decimal,
+                                        imeAction = ImeAction.Done
+                                    ),
+                                    isError = form.maxLen.isNotEmpty() && !form.maxLen.matches(Regex("^\\d*\\.?\\d*$"))
+                                )
+                            }
+                        }
 
-                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    DarkDateButton(
-                                        label = "From",
-                                        dateText = form.startDate.ifEmpty { "Select date" },
-                                        hasDate = form.startDate.isNotEmpty(),
-                                        onClick = { showStartDatePicker = true },
-                                        modifier = Modifier.weight(1f)
-                                    )
+                        
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.DateRange,
+                                    contentDescription = null,
+                                    tint = lightBlue,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Text(
+                                    text = "Date Range",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = lightBlue,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
 
-                                    DarkDateButton(
-                                        label = "To",
-                                        dateText = form.endDate.ifEmpty { "Select date" },
-                                        hasDate = form.endDate.isNotEmpty(),
-                                        onClick = { showEndDatePicker = true },
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
+                            var showStartDatePicker by remember { mutableStateOf(false) }
+                            var showEndDatePicker by remember { mutableStateOf(false) }
 
-                                if (showStartDatePicker) {
-                                    AppDatePickerDialog(
-                                        onDismissRequest = { showStartDatePicker = false },
-                                        onDateSelected = { selectedDate ->
-                                            vm.form.value = form.copy(startDate = selectedDate)
-                                            showStartDatePicker = false
-                                        },
-                                        initialDate = form.startDate
-                                    )
-                                }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                DarkDateButton(
+                                    label = "From",
+                                    dateText = form.startDate.ifEmpty { "Select date" },
+                                    hasDate = form.startDate.isNotEmpty(),
+                                    onClick = { showStartDatePicker = true },
+                                    modifier = Modifier.weight(1f)
+                                )
 
-                                if (showEndDatePicker) {
-                                    AppDatePickerDialog(
-                                        onDismissRequest = { showEndDatePicker = false },
-                                        onDateSelected = { selectedDate ->
-                                            vm.form.value = form.copy(endDate = selectedDate)
-                                            showEndDatePicker = false
-                                        },
-                                        initialDate = form.endDate
-                                    )
-                                }
+                                DarkDateButton(
+                                    label = "To",
+                                    dateText = form.endDate.ifEmpty { "Select date" },
+                                    hasDate = form.endDate.isNotEmpty(),
+                                    onClick = { showEndDatePicker = true },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+
+                            if (showStartDatePicker) {
+                                AppDatePickerDialog(
+                                    onDismissRequest = { showStartDatePicker = false },
+                                    onDateSelected = { selectedDate ->
+                                        vm.form.value = form.copy(startDate = selectedDate)
+                                        showStartDatePicker = false
+                                    },
+                                    initialDate = form.startDate
+                                )
+                            }
+
+                            if (showEndDatePicker) {
+                                AppDatePickerDialog(
+                                    onDismissRequest = { showEndDatePicker = false },
+                                    onDateSelected = { selectedDate ->
+                                        vm.form.value = form.copy(endDate = selectedDate)
+                                        showEndDatePicker = false
+                                    },
+                                    initialDate = form.endDate
+                                )
                             }
                         }
                     }
                 }
 
+                
+                
                 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -375,16 +401,25 @@ fun SearchScreen(
                             tint = lightBlue,
                             modifier = Modifier.size(22.dp)
                         )
-                        Text(
-                            text = "Search Results",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            fontSize = 18.sp
-                        )
+                        Column {
+                            Text(
+                                text = "Search Results",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Text(
+                                text = if (results.isEmpty())
+                                    "No matching hikes yet"
+                                else
+                                    "Tap a hike to view details",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White.copy(alpha = 0.6f)
+                            )
+                        }
                     }
                     Surface(
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(999.dp),
                         color = accentBlue.copy(alpha = 0.25f)
                     ) {
                         Text(
@@ -397,6 +432,8 @@ fun SearchScreen(
                     }
                 }
 
+                
+                
                 
                 if (results.isEmpty()) {
                     Box(
@@ -482,7 +519,7 @@ private fun DarkTextField(
         label = {
             Text(
                 label,
-                color = lightBlue.copy(alpha = 0.8f)
+                color = lightBlue.copy(alpha = 0.85f)
             )
         },
         placeholder = {
@@ -504,7 +541,7 @@ private fun DarkTextField(
                 Text(
                     text = it,
                     style = MaterialTheme.typography.bodySmall,
-                    color = lightBlue.copy(alpha = 0.7f)
+                    color = lightBlue.copy(alpha = 0.75f)
                 )
             }
         },
@@ -516,10 +553,10 @@ private fun DarkTextField(
         colors = OutlinedTextFieldDefaults.colors(
             focusedTextColor = Color.White,
             unfocusedTextColor = Color.White.copy(alpha = 0.9f),
-            focusedContainerColor = darkOverlay.copy(alpha = 0.5f),
-            unfocusedContainerColor = darkOverlay.copy(alpha = 0.3f),
+            focusedContainerColor = darkOverlay.copy(alpha = 0.55f),
+            unfocusedContainerColor = darkOverlay.copy(alpha = 0.35f),
             focusedBorderColor = Color(0xFF29B6F6),
-            unfocusedBorderColor = Color(0xFF29B6F6).copy(alpha = 0.3f),
+            unfocusedBorderColor = Color(0xFF29B6F6).copy(alpha = 0.35f),
             cursorColor = Color(0xFF29B6F6),
             errorBorderColor = Color(0xFFEF5350),
             errorContainerColor = darkOverlay.copy(alpha = 0.5f)
@@ -543,11 +580,11 @@ private fun DarkDateButton(
         modifier = modifier,
         shape = RoundedCornerShape(14.dp),
         colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = darkOverlay.copy(alpha = 0.4f),
+            containerColor = darkOverlay.copy(alpha = 0.45f),
             contentColor = Color.White
         ),
         border = ButtonDefaults.outlinedButtonBorder.copy(
-            brush = androidx.compose.ui.graphics.SolidColor(Color(0xFF29B6F6).copy(alpha = 0.3f))
+            brush = SolidColor(Color(0xFF29B6F6).copy(alpha = 0.35f))
         )
     ) {
         Icon(
@@ -564,7 +601,7 @@ private fun DarkDateButton(
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
-                color = lightBlue.copy(alpha = 0.8f)
+                color = lightBlue.copy(alpha = 0.85f)
             )
             Text(
                 text = dateText,
@@ -572,7 +609,7 @@ private fun DarkDateButton(
                 color = if (hasDate)
                     Color.White
                 else
-                    Color.White.copy(alpha = 0.5f)
+                    Color.White.copy(alpha = 0.55f)
             )
         }
     }
@@ -586,122 +623,135 @@ fun DarkHikeResultCard(
     val cardBg = Color(0xFF1A2F42)
     val accentBlue = Color(0xFF29B6F6)
     val lightBlue = Color(0xFF81D4FA)
-    val darkOverlay = Color(0xFF0D1F2D)
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(18.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(
-            containerColor = cardBg
+            containerColor = cardBg.copy(alpha = 0.96f)
         )
     ) {
-        Box {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(5.dp)
+                    .size(46.dp)
+                    .clip(RoundedCornerShape(14.dp))
                     .background(
-                        brush = Brush.horizontalGradient(
+                        brush = Brush.linearGradient(
                             colors = listOf(
-                                Color(0xFF4FC3F7).copy(alpha = 0.6f),
-                                Color(0xFF29B6F6).copy(alpha = 0.6f),
-                                Color(0xFF03A9F4).copy(alpha = 0.6f)
+                                Color(0xFF243447),
+                                Color(0xFF1A2F42)
                             )
                         )
-                    )
-            )
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 5.dp)
-                    .padding(18.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    ),
+                contentAlignment = Alignment.Center
             ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Text(
-                        text = hike.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        fontSize = 18.sp
-                    )
+                Icon(
+                    imageVector = Icons.Default.Terrain,
+                    contentDescription = null,
+                    tint = lightBlue,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
 
+            
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    text = hike.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = Color(0xFFFFB74D)
+                    )
+                    Text(
+                        text = hike.location,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.85f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.DateRange,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = lightBlue
+                    )
+                    Text(
+                        text = hike.date.toString(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.8f),
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = accentBlue.copy(alpha = 0.22f)
+                ) {
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.LocationOn,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                                tint = Color(0xFFFFB74D)
-                            )
-                            Text(
-                                text = hike.location,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.White.copy(alpha = 0.8f)
-                            )
-                        }
-
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.DateRange,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                                tint = lightBlue
-                            )
-                            Text(
-                                text = hike.date.toString(),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.White.copy(alpha = 0.8f)
-                            )
-                        }
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = accentBlue.copy(alpha = 0.2f)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Straighten,
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp),
-                                tint = lightBlue
-                            )
-                            Text(
-                                text = "${hike.lengthKm} km",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = lightBlue
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Default.Straighten,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = lightBlue
+                        )
+                        Text(
+                            text = "${hike.lengthKm} km",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = lightBlue,
+                            maxLines = 1
+                        )
                     }
                 }
 
                 Box(
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(30.dp)
                         .clip(CircleShape)
                         .background(accentBlue.copy(alpha = 0.2f)),
                     contentAlignment = Alignment.Center
@@ -710,7 +760,7 @@ fun DarkHikeResultCard(
                         imageVector = Icons.Default.ChevronRight,
                         contentDescription = "View details",
                         tint = lightBlue,
-                        modifier = Modifier.size(22.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }

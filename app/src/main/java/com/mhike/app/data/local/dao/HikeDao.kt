@@ -31,7 +31,7 @@ interface HikeDao {
     @Query("SELECT * FROM hikes WHERE id = :id LIMIT 1")
     fun observeById(id: Long): Flow<HikeEntity?>
 
-    // Basic + advanced search. Any null parameter is ignored.
+    
     @Query(
         """
         SELECT * FROM hikes
